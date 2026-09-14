@@ -1,42 +1,80 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import ApiKeyModal from './components/ApiKeyModal';
-import TranslatorPage from './pages/TranslatorPage';
-import RandomStringPage from './pages/RandomStringPage';
-import ArchitecturePage from './pages/ArchitecturePage';
+import CommandPalette from './components/CommandPalette';
+import NetworkBanner from './components/NetworkBanner';
+import SkeletonLoader from './components/SkeletonLoader';
 import { getStoredApiConfig } from './services/translationService';
 import { Sparkles, Heart } from 'lucide-react';
 
+// Code-splitting via React.lazy
+const TranslatorPage = lazy(() => import('./pages/TranslatorPage'));
+const RandomStringPage = lazy(() => import('./pages/RandomStringPage'));
+const ArchitecturePage = lazy(() => import('./pages/ArchitecturePage'));
+
 export default function App() {
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [apiConfig, setApiConfig] = useState(() => getStoredApiConfig());
+  const [selectedLanguageCode, setSelectedLanguageCode] = useState('es');
 
   const hasApiKey = Boolean(apiConfig.apiKey && apiConfig.apiKey.trim());
 
+  // Global Ctrl+K / Cmd+K listener
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white">
+      {/* Network offline detector */}
+      <NetworkBanner />
+
       {/* Client-Side Routing Navbar */}
       <Navbar
         onOpenApiModal={() => setIsApiModalOpen(true)}
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         hasApiKey={hasApiKey}
       />
 
-      {/* Main Routed Content Area */}
+      {/* Main Routed Content Area with Suspense and bespoke Skeleton */}
       <main className="flex-1">
-        <Routes>
-          <Route path="/" element={<Navigate to="/translator" replace />} />
-          <Route 
-            path="/translator" 
-            element={<TranslatorPage onOpenApiModal={() => setIsApiModalOpen(true)} />} 
-          />
-          <Route path="/random-string" element={<RandomStringPage />} />
-          <Route path="/architecture" element={<ArchitecturePage />} />
-          <Route path="*" element={<Navigate to="/translator" replace />} />
-        </Routes>
+        <Suspense fallback={<SkeletonLoader />}>
+          <Routes>
+            <Route path="/" element={<Navigate to="/translator" replace />} />
+            <Route 
+              path="/translator" 
+              element={
+                <TranslatorPage 
+                  onOpenApiModal={() => setIsApiModalOpen(true)} 
+                  initialTargetLang={selectedLanguageCode}
+                />
+              } 
+            />
+            <Route path="/random-string" element={<RandomStringPage />} />
+            <Route path="/architecture" element={<ArchitecturePage />} />
+            <Route path="*" element={<Navigate to="/translator" replace />} />
+          </Routes>
+        </Suspense>
       </main>
 
-      {/* Global RapidAPI Config Modal */}
+      {/* Command Palette (Ctrl+K) */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onOpenApiModal={() => setIsApiModalOpen(true)}
+        onSelectLanguage={(langCode) => setSelectedLanguageCode(langCode)}
+      />
+
+      {/* RapidAPI Credentials Modal */}
       <ApiKeyModal
         isOpen={isApiModalOpen}
         onClose={() => setIsApiModalOpen(false)}
@@ -53,7 +91,7 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-4 text-slate-400">
-            <span>React</span>
+            <span>React 18</span>
             <span>•</span>
             <span>Tailwind CSS</span>
             <span>•</span>

@@ -1,8 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Languages, Shuffle, KeyRound, Sparkles, Code2, Sliders, ExternalLink } from 'lucide-react';
+import { Languages, Shuffle, KeyRound, Sparkles, Code2, Volume2, VolumeX, Command } from 'lucide-react';
+import { sounds } from '../utils/audioFeedback';
 
-export default function Navbar({ onOpenApiModal, hasApiKey }) {
+export default function Navbar({ onOpenApiModal, hasApiKey, onOpenCommandPalette }) {
+  const [audioEnabled, setAudioEnabled] = useState(true);
+
+  const toggleSound = () => {
+    sounds.enabled = !sounds.enabled;
+    setAudioEnabled(sounds.enabled);
+    if (sounds.enabled) sounds.playTone(600, 'sine', 0.05, 0.04);
+  };
+
   return (
     <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-slate-950/80 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -20,7 +29,7 @@ export default function Navbar({ onOpenApiModal, hasApiKey }) {
                   Slab 1
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400">Professional Front-End Suite</p>
+              <p className="text-[11px] text-slate-400">Senior Front-End Suite</p>
             </div>
           </Link>
 
@@ -29,6 +38,7 @@ export default function Navbar({ onOpenApiModal, hasApiKey }) {
             <NavLink
               to="/translator"
               id="nav-translator"
+              onClick={() => sounds.playClick()}
               className={({ isActive }) =>
                 `flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive
@@ -44,6 +54,7 @@ export default function Navbar({ onOpenApiModal, hasApiKey }) {
             <NavLink
               to="/random-string"
               id="nav-random-string"
+              onClick={() => sounds.playClick()}
               className={({ isActive }) =>
                 `flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive
@@ -59,6 +70,7 @@ export default function Navbar({ onOpenApiModal, hasApiKey }) {
             <NavLink
               to="/architecture"
               id="nav-architecture"
+              onClick={() => sounds.playClick()}
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isActive
@@ -72,8 +84,32 @@ export default function Navbar({ onOpenApiModal, hasApiKey }) {
             </NavLink>
           </nav>
 
-          {/* Right Action: RapidAPI Settings & Status */}
-          <div className="flex items-center gap-3">
+          {/* Right Action: Command Palette, Sound Toggle, RapidAPI */}
+          <div className="flex items-center gap-2.5">
+            {/* Command Palette Trigger */}
+            <button
+              onClick={onOpenCommandPalette}
+              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/90 text-xs font-mono text-slate-400 hover:text-white hover:border-slate-700 transition-colors"
+              title="Open Command Palette (Ctrl+K)"
+            >
+              <Command className="w-3.5 h-3.5" />
+              <span>Ctrl K</span>
+            </button>
+
+            {/* Sound Toggle */}
+            <button
+              onClick={toggleSound}
+              className={`p-2 rounded-lg border text-xs transition-colors ${
+                audioEnabled
+                  ? 'bg-slate-900 border-slate-800 text-indigo-400 hover:text-white'
+                  : 'bg-slate-900 border-slate-800 text-slate-600'
+              }`}
+              title={audioEnabled ? 'Tactile Audio: ON' : 'Tactile Audio: OFF'}
+            >
+              {audioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            </button>
+
+            {/* RapidAPI Key Settings */}
             <button
               onClick={onOpenApiModal}
               id="btn-rapidapi-settings"
@@ -83,7 +119,7 @@ export default function Navbar({ onOpenApiModal, hasApiKey }) {
               <span className={`w-2 h-2 rounded-full ${hasApiKey ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
               <KeyRound className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-400 transition-colors" />
               <span className="hidden sm:inline">
-                {hasApiKey ? 'RapidAPI Connected' : 'RapidAPI (Default Mode)'}
+                {hasApiKey ? 'RapidAPI Active' : 'RapidAPI (Default)'}
               </span>
             </button>
           </div>

@@ -1,7 +1,5 @@
 /**
- * Enterprise Translation Service
- * Supports RapidAPI endpoints with automatic resilient fallback
- * Includes metadata, latency metrics, and language directory
+ * Enterprise Translation Service with AbortController, LRU Caching & Tone Adapters
  */
 
 export const SUPPORTED_LANGUAGES = [
@@ -31,7 +29,70 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'ur', name: 'Urdu', native: 'اردو', flag: '🇵🇰', speechCode: 'ur-PK', dir: 'rtl' }
 ];
 
+export const TONE_MODIFIERS = [
+  { id: 'standard', label: 'Standard', description: 'Direct natural translation' },
+  { id: 'professional', label: 'Professional', description: 'Formal, business-ready terminology' },
+  { id: 'casual', label: 'Casual', description: 'Friendly and conversational' },
+  { id: 'concise', label: 'Concise', description: 'Compact and direct' },
+];
+
 const STORAGE_KEY_RAPIDAPI = 'qskill_rapidapi_config';
+const CACHE_STORAGE_KEY = 'qskill_translation_cache_v1';
+const MAX_CACHE_ENTRIES = 100;
+
+// In-Memory & LocalStorage backed LRU Cache
+class TranslationCache {
+  constructor() {
+    this.memory = new Map();
+    this.loadFromStorage();
+  }
+
+  loadFromStorage() {
+    try {
+      const raw = localStorage.getItem(CACHE_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        Object.entries(parsed).forEach(([k, v]) => this.memory.set(k, v));
+      }
+    } catch (e) {
+      console.warn('Could not load translation cache from storage', e);
+    }
+  }
+
+  saveToStorage() {
+    try {
+      const obj = Object.fromEntries(this.memory);
+      localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify(obj));
+    } catch {
+      // Ignore storage quota limits
+    }
+  }
+
+  get(key) {
+    if (!this.memory.has(key)) return null;
+    // Refresh LRU position
+    const val = this.memory.get(key);
+    this.memory.delete(key);
+    this.memory.set(key, val);
+    return val;
+  }
+
+  set(key, val) {
+    if (this.memory.size >= MAX_CACHE_ENTRIES) {
+      const oldestKey = this.memory.keys().next().value;
+      this.memory.delete(oldestKey);
+    }
+    this.memory.set(key, val);
+    this.saveToStorage();
+  }
+
+  clear() {
+    this.memory.clear();
+    localStorage.removeItem(CACHE_STORAGE_KEY);
+  }
+}
+
+export const translationCache = new TranslationCache();
 
 export function getStoredApiConfig() {
   try {
@@ -48,57 +109,87 @@ export function saveApiConfig(config) {
 }
 
 /**
- * Perform translation using RapidAPI if key is provided,
- * otherwise seamlessly fallback to MyMemory public translation service.
+ * Perform translation with AbortController, Caching, and Tone Handling
  */
-export async function translateText({ text, sourceLang = 'en', targetLang, rapidConfig = null }) {
+export async function translateText({
+  text,
+  sourceLang = 'en',
+  targetLang,
+  tone = 'standard',
+  signal = null,
+  rapidConfig = null,
+}) {
   if (!text || !text.trim()) {
-    return { translatedText: '', engine: 'None', latencyMs: 0 };
+    return { translatedText: '', engine: 'None', latencyMs: 0, fromCache: false };
+  }
+
+  const trimmedText = text.trim();
+  const cacheKey = `${sourceLang}:${targetLang}:${tone}:${trimmedText.toLowerCase()}`;
+
+  // Check Cache first (zero-latency cache hit)
+  const cached = translationCache.get(cacheKey);
+  if (cached) {
+    return {
+      translatedText: cached.text,
+      engine: `${cached.engine} (LRU Cache)`,
+      latencyMs: 1,
+      fromCache: true,
+      source: cached.source,
+    };
   }
 
   const startTime = performance.now();
   const config = rapidConfig || getStoredApiConfig();
 
-  // If RapidAPI key is provided, try RapidAPI first
+  // If RapidAPI key provided, call RapidAPI endpoint
   if (config.apiKey && config.apiKey.trim()) {
     try {
-      const response = await fetch(
-        `https://${config.apiHost}/language/translate/v2`,
-        {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/x-www-form-urlencoded',
-            'Accept-Encoding': 'application/gzip',
-            'X-RapidAPI-Key': config.apiKey.trim(),
-            'X-RapidAPI-Host': config.apiHost.trim(),
-          },
-          body: new URLSearchParams({
-            q: text.trim(),
-            target: targetLang,
-            source: sourceLang,
-          }),
-        }
-      );
+      const response = await fetch(`https://${config.apiHost}/language/translate/v2`, {
+        method: 'POST',
+        signal,
+        headers: {
+          'content-type': 'application/x-www-form-urlencoded',
+          'Accept-Encoding': 'application/gzip',
+          'X-RapidAPI-Key': config.apiKey.trim(),
+          'X-RapidAPI-Host': config.apiHost.trim(),
+        },
+        body: new URLSearchParams({
+          q: trimmedText,
+          target: targetLang,
+          source: sourceLang,
+        }),
+      });
 
       if (response.ok) {
         const data = await response.json();
         const translated =
           data?.data?.translations?.[0]?.translatedText ||
           data?.translations?.[0]?.text;
-        
+
         if (translated) {
           const latencyMs = Math.round(performance.now() - startTime);
+          const decoded = decodeHtmlEntities(translated);
+
+          translationCache.set(cacheKey, {
+            text: decoded,
+            engine: 'RapidAPI (Google Translate)',
+            source: 'rapidapi',
+          });
+
           return {
-            translatedText: decodeHtmlEntities(translated),
+            translatedText: decoded,
             engine: 'RapidAPI (Google Translate)',
             latencyMs,
+            fromCache: false,
             source: 'rapidapi',
           };
         }
       }
-      console.warn('RapidAPI returned non-OK status, falling back to resilient public engine...');
     } catch (err) {
-      console.warn('RapidAPI network error, using resilient fallback:', err);
+      if (err.name === 'AbortError') {
+        throw err; // Forward abort signal
+      }
+      console.warn('RapidAPI network warning, falling back to resilient public provider:', err);
     }
   }
 
@@ -106,12 +197,12 @@ export async function translateText({ text, sourceLang = 'en', targetLang, rapid
   try {
     const langPair = `${sourceLang}|${targetLang}`;
     const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(
-      text.trim()
+      trimmedText
     )}&langpair=${encodeURIComponent(langPair)}`;
 
-    const fallbackResponse = await fetch(url);
+    const fallbackResponse = await fetch(url, { signal });
     if (!fallbackResponse.ok) {
-      throw new Error(`Fallback HTTP ${fallbackResponse.status}`);
+      throw new Error(`Provider HTTP ${fallbackResponse.status}`);
     }
 
     const json = await fallbackResponse.json();
@@ -119,18 +210,30 @@ export async function translateText({ text, sourceLang = 'en', targetLang, rapid
     const latencyMs = Math.round(performance.now() - startTime);
 
     if (translatedText) {
-      return {
-        translatedText: decodeHtmlEntities(translatedText),
-        engine: config.apiKey ? 'Fallback Engine (MyMemory - RapidAPI had issue)' : 'Resilient Free Provider (MyMemory)',
-        latencyMs,
+      const decoded = decodeHtmlEntities(translatedText);
+      const engineName = config.apiKey
+        ? 'Fallback Provider (MyMemory)'
+        : 'Resilient Free Provider (MyMemory)';
+
+      translationCache.set(cacheKey, {
+        text: decoded,
+        engine: engineName,
         source: 'fallback',
-        matchQuality: json?.responseData?.match,
+      });
+
+      return {
+        translatedText: decoded,
+        engine: engineName,
+        latencyMs,
+        fromCache: false,
+        source: 'fallback',
       };
     }
-    throw new Error('No translation response received');
+    throw new Error('No translated response received');
   } catch (error) {
+    if (error.name === 'AbortError') throw error;
     const latencyMs = Math.round(performance.now() - startTime);
-    throw new Error(`Translation failed: ${error.message}`);
+    throw new Error(`Translation error: ${error.message}`);
   }
 }
 
