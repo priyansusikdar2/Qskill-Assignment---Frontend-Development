@@ -95,12 +95,21 @@ class TranslationCache {
 export const translationCache = new TranslationCache();
 
 export function getStoredApiConfig() {
+  const envKey = import.meta.env.VITE_RAPIDAPI_KEY || '';
+  const envHost = import.meta.env.VITE_RAPIDAPI_HOST || 'google-translate1.p.rapidapi.com';
+
   try {
     const raw = localStorage.getItem(STORAGE_KEY_RAPIDAPI);
-    if (!raw) return { apiKey: '', apiHost: 'google-translate1.p.rapidapi.com' };
-    return JSON.parse(raw);
+    if (!raw) {
+      return { apiKey: envKey, apiHost: envHost };
+    }
+    const parsed = JSON.parse(raw);
+    return {
+      apiKey: parsed.apiKey || envKey,
+      apiHost: parsed.apiHost || envHost,
+    };
   } catch {
-    return { apiKey: '', apiHost: 'google-translate1.p.rapidapi.com' };
+    return { apiKey: envKey, apiHost: envHost };
   }
 }
 
