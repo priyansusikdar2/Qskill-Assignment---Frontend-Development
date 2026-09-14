@@ -149,6 +149,39 @@ export default function ArchitecturePage() {
         </div>
       </div>
 
+      {/* Environment Secrets Architecture */}
+      <div className="mt-10 bg-slate-900/70 border border-slate-800 rounded-3xl p-6 sm:p-8">
+        <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+          <FileText className="w-5 h-5 text-amber-400" />
+          Environment Configuration & Secrets Management (.env)
+        </h2>
+        <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+          Following 12-factor application design, sensitive API credentials and deployment settings are isolated from the code repository:
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+          <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
+            <div className="flex items-center justify-between text-amber-400 font-semibold mb-2">
+              <span>.env (Private)</span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">Git Ignored</span>
+            </div>
+            <p className="text-[11px] text-slate-400 font-sans leading-relaxed">
+              Holds private keys (<code className="text-indigo-300">VITE_RAPIDAPI_KEY</code>). Blocked by <code className="text-slate-300">.gitignore</code> to prevent credential leakage.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
+            <div className="flex items-center justify-between text-emerald-400 font-semibold mb-2">
+              <span>.env.example (Public Template)</span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Committed</span>
+            </div>
+            <p className="text-[11px] text-slate-400 font-sans leading-relaxed">
+              Safe public template committed to GitHub so evaluators and contributors immediately know the required environment variables.
+            </p>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }

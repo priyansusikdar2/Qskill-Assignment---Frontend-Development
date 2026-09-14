@@ -3,13 +3,19 @@ import { NavLink, Link } from 'react-router-dom';
 import { Languages, Shuffle, KeyRound, Sparkles, Code2, Volume2, VolumeX, Command } from 'lucide-react';
 import { sounds } from '../utils/audioFeedback';
 
-export default function Navbar({ onOpenApiModal, hasApiKey, onOpenCommandPalette }) {
+export default function Navbar({ onOpenApiModal, hasApiKey, apiSource, onOpenCommandPalette }) {
   const [audioEnabled, setAudioEnabled] = useState(true);
 
   const toggleSound = () => {
     sounds.enabled = !sounds.enabled;
     setAudioEnabled(sounds.enabled);
     if (sounds.enabled) sounds.playTone(600, 'sine', 0.05, 0.04);
+  };
+
+  const getStatusLabel = () => {
+    if (apiSource === '.env') return 'RapidAPI (.env)';
+    if (hasApiKey) return 'RapidAPI (Active)';
+    return 'RapidAPI (Default)';
   };
 
   return (
@@ -119,7 +125,7 @@ export default function Navbar({ onOpenApiModal, hasApiKey, onOpenCommandPalette
               <span className={`w-2 h-2 rounded-full ${hasApiKey ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
               <KeyRound className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-400 transition-colors" />
               <span className="hidden sm:inline">
-                {hasApiKey ? 'RapidAPI Active' : 'RapidAPI (Default)'}
+                {getStatusLabel()}
               </span>
             </button>
           </div>

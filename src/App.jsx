@@ -43,6 +43,7 @@ export default function App() {
         onOpenApiModal={() => setIsApiModalOpen(true)}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         hasApiKey={hasApiKey}
+        apiSource={apiConfig.source}
       />
 
       {/* Main Routed Content Area with Suspense and bespoke Skeleton */}

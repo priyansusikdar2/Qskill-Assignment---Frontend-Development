@@ -94,23 +94,39 @@ class TranslationCache {
 
 export const translationCache = new TranslationCache();
 
-export function getStoredApiConfig() {
-  const envKey = import.meta.env.VITE_RAPIDAPI_KEY || '';
-  const envHost = import.meta.env.VITE_RAPIDAPI_HOST || 'google-translate1.p.rapidapi.com';
+import { ENV } from '../config/env';
 
+export function getStoredApiConfig() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_RAPIDAPI);
-    if (!raw) {
-      return { apiKey: envKey, apiHost: envHost };
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.apiKey && parsed.apiKey.trim()) {
+        return {
+          apiKey: parsed.apiKey.trim(),
+          apiHost: parsed.apiHost || ENV.RAPIDAPI_HOST,
+          source: 'localStorage',
+        };
+      }
     }
-    const parsed = JSON.parse(raw);
-    return {
-      apiKey: parsed.apiKey || envKey,
-      apiHost: parsed.apiHost || envHost,
-    };
   } catch {
-    return { apiKey: envKey, apiHost: envHost };
+    // Ignore JSON error
   }
+
+  // Fallback to .env configuration
+  if (ENV.RAPIDAPI_KEY) {
+    return {
+      apiKey: ENV.RAPIDAPI_KEY,
+      apiHost: ENV.RAPIDAPI_HOST,
+      source: '.env',
+    };
+  }
+
+  return {
+    apiKey: '',
+    apiHost: ENV.RAPIDAPI_HOST,
+    source: 'default',
+  };
 }
 
 export function saveApiConfig(config) {
