@@ -8,6 +8,7 @@ import SkeletonLoader from './components/SkeletonLoader';
 import { getStoredApiConfig } from './services/translationService';
 import { Sparkles, Heart } from 'lucide-react';
 
+import FloatingAurora from './components/FloatingAurora';
 import { ToastProvider } from './components/Toast';
 
 // Code-splitting via React.lazy
@@ -37,7 +38,10 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <div className="min-h-screen flex flex-col bg-bg ambient-glow text-zinc-100 font-sans selection:bg-accent-600 selection:text-white">
+      <div className="min-h-screen relative flex flex-col bg-bg ambient-glow text-zinc-100 font-sans selection:bg-accent-600 selection:text-white overflow-hidden">
+        {/* Living Drifting Aurora Atmosphere */}
+        <FloatingAurora />
+
         {/* Network offline detector */}
         <NetworkBanner />
 

@@ -367,15 +367,18 @@ export default function RandomStringPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6">
+    <div className="w-full max-w-[98%] 2xl:max-w-[1800px] mx-auto px-3 sm:px-6 lg:px-8 py-5">
       
       {/* Studio Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-base font-semibold text-zinc-100 tracking-tight">Cryptographic Token & Entropy Studio</h1>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700/60">
-              WebCrypto CSPRNG
+            <h1 className="text-lg font-bold text-zinc-100 tracking-tight flex items-center gap-2">
+              <span>Cryptographic Token & Entropy Studio</span>
+              <span className="w-2 h-2 rounded-full bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.8)] animate-pulse"></span>
+            </h1>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full glass-pill text-emerald-300 font-medium border-emerald-500/30">
+              WebCrypto CSPRNG Verified
             </span>
           </div>
           <p className="text-xs text-zinc-400">
@@ -384,7 +387,7 @@ export default function RandomStringPage() {
         </div>
 
         {/* Mode Switcher Tabs (6 Professional Presets) */}
-        <div className="flex items-center bg-panel hairline rounded-lg p-0.5 text-xs font-mono shrink-0 overflow-x-auto">
+        <div className="flex items-center glass-panel p-1 rounded-xl text-xs font-mono shrink-0 overflow-x-auto">
           {[
             { id: 'standard', label: 'Standard' },
             { id: 'uuid', label: 'UUID v4' },
@@ -400,10 +403,10 @@ export default function RandomStringPage() {
                 sounds.playClick();
                 addToast(`Switched mode to ${tab.label}`, 'info');
               }}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap cursor-pointer ${
                 mode === tab.id
-                  ? 'bg-zinc-800 text-zinc-100 shadow-subtle'
-                  : 'text-zinc-400 hover:text-zinc-200'
+                  ? 'glass-pill-active text-white font-semibold shadow-md'
+                  : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04]'
               }`}
             >
               {tab.label}
@@ -413,23 +416,24 @@ export default function RandomStringPage() {
       </div>
 
       {/* Primary Token Display Workbench */}
-      <div className="surface-card p-6 shadow-panel mb-6">
+      <div className="glass-panel p-6 sm:p-8 shadow-2xl mb-6">
         <div className="flex items-center justify-between text-xs text-zinc-400 mb-2 font-mono">
-          <span className="text-[11px] uppercase tracking-wider text-zinc-500">
+          <span className="text-[11px] uppercase tracking-wider text-zinc-400 font-semibold flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
             {mode.toUpperCase()} Token Output
           </span>
           <div className="flex items-center gap-2">
-            <span className="text-status-emerald">{randomString.length} chars</span>
+            <span className="text-emerald-400 font-bold">{randomString.length} chars</span>
             <span className="text-zinc-600">•</span>
-            <span className="text-zinc-300 font-medium">{securityAudit.label} ({securityAudit.entropy} bits)</span>
+            <span className="text-zinc-200 font-medium">{securityAudit.label} ({securityAudit.entropy} bits)</span>
           </div>
         </div>
 
         {/* Big String Box */}
-        <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-bg hairline rounded-lg p-3 sm:p-4 gap-3">
+        <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-zinc-950/60 border border-white/[0.08] rounded-xl p-4 sm:p-5 gap-3 shadow-inner">
           <div 
             id="random-string-display"
-            className="flex-1 font-mono text-base sm:text-xl text-zinc-100 break-all select-all tracking-wider pr-2"
+            className="flex-1 font-mono text-lg sm:text-2xl text-zinc-100 break-all select-all tracking-wider pr-2"
           >
             {randomString || <span className="text-zinc-600">Generating token...</span>}
           </div>
@@ -442,10 +446,10 @@ export default function RandomStringPage() {
                 setQrToken(randomString);
                 sounds.playPop();
               }}
-              className="p-2 rounded-md hairline bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+              className="p-2.5 rounded-lg glass-pill text-zinc-300 hover:text-white transition-all cursor-pointer shadow-md"
               title="Show mobile QR Code"
             >
-              <QrCode className="w-4 h-4" />
+              <QrCode className="w-4 h-4 text-indigo-300" />
             </button>
 
             {/* Regenerate Trigger */}
@@ -465,23 +469,23 @@ export default function RandomStringPage() {
               type="button"
               id="btn-copy-string"
               onClick={() => handleCopy(randomString)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-md font-semibold text-xs bg-zinc-100 hover:bg-white text-zinc-950 transition-colors cursor-pointer shadow-subtle"
+              className="btn-glow-gradient flex items-center gap-1.5 px-4 py-2 rounded-lg font-bold text-xs text-white transition-all cursor-pointer shadow-lg shadow-indigo-500/25 active:scale-95"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-status-emerald" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? 'Copied' : 'Copy'}</span>
+              {copied ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+              <span>{copied ? 'Copied!' : 'Copy'}</span>
             </button>
           </div>
         </div>
 
         {/* Entropy Progress Bar */}
-        <div className="mt-3">
-          <div className="h-1.5 w-full bg-zinc-800/80 rounded-full overflow-hidden">
+        <div className="mt-4">
+          <div className="h-2 w-full bg-zinc-900/80 rounded-full overflow-hidden border border-white/[0.06] shadow-inner">
             <div 
-              className={`h-full transition-all duration-300 ${securityAudit.color}`} 
+              className={`h-full transition-all duration-500 ${securityAudit.color} shadow-[0_0_12px_rgba(99,102,241,0.7)]`} 
               style={{ width: `${securityAudit.score}%` }} 
             />
           </div>
-          <div className="flex flex-wrap items-center justify-between text-[11px] text-zinc-500 mt-2 font-mono gap-2">
+          <div className="flex flex-wrap items-center justify-between text-[11px] text-zinc-400 mt-2 font-mono gap-2">
             <span>Entropy: <strong className="text-zinc-300">{securityAudit.entropy} bits</strong></span>
             <span>Search Space: <strong className="text-zinc-300">{securityAudit.searchSpaceScientific}</strong></span>
             <span>Crack Estimate: <strong className="text-zinc-300">{securityAudit.crackTime}</strong></span>
@@ -493,7 +497,7 @@ export default function RandomStringPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         
         {/* Parameters Column */}
-        <div className="lg:col-span-2 surface-card p-6 shadow-panel">
+        <div className="lg:col-span-2 glass-panel p-6 sm:p-8 shadow-2xl">
           <div className="flex items-center gap-2 mb-4">
             <Sliders className="w-4 h-4 text-zinc-400" />
             <h3 className="text-xs font-semibold text-zinc-200 font-mono uppercase tracking-wider">
@@ -776,17 +780,17 @@ export default function RandomStringPage() {
         </div>
 
         {/* Live Hook Telemetry & Profiler Column */}
-        <div className="surface-card p-6 shadow-panel flex flex-col justify-between">
+        <div className="glass-panel p-6 sm:p-7 shadow-2xl flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <Activity className="w-4 h-4 text-status-emerald" />
-              <h3 className="text-xs font-semibold text-zinc-200">React 18 Hook Telemetry</h3>
+              <Activity className="w-4 h-4 text-emerald-400" />
+              <h3 className="text-xs font-semibold text-zinc-100 font-sans tracking-wide">React 18 Hook Telemetry</h3>
             </div>
 
             <div className="space-y-2.5 font-mono text-xs">
-              <div className="p-2.5 rounded-lg bg-bg hairline">
+              <div className="p-3 rounded-lg bg-zinc-950/50 border border-white/[0.06]">
                 <div className="flex items-center justify-between text-zinc-400 mb-1">
-                  <span className="text-status-emerald font-bold">useCallback</span>
+                  <span className="text-emerald-400 font-bold">useCallback</span>
                   <span className="text-[10px] text-zinc-400">{telemetry.useCallbackRuns} Invocations</span>
                 </div>
                 <div className="text-[11px] text-zinc-400">
@@ -794,9 +798,9 @@ export default function RandomStringPage() {
                 </div>
               </div>
 
-              <div className="p-2.5 rounded-lg bg-bg hairline">
+              <div className="p-3 rounded-lg bg-zinc-950/50 border border-white/[0.06]">
                 <div className="flex items-center justify-between text-zinc-400 mb-1">
-                  <span className="text-accent-400 font-bold">useEffect</span>
+                  <span className="text-indigo-400 font-bold">useEffect</span>
                   <span className="text-[10px] text-zinc-400">{telemetry.useEffectRuns} Triggers</span>
                 </div>
                 <div className="text-[11px] text-zinc-400">
@@ -804,9 +808,9 @@ export default function RandomStringPage() {
                 </div>
               </div>
 
-              <div className="p-2.5 rounded-lg bg-bg hairline">
+              <div className="p-3 rounded-lg bg-zinc-950/50 border border-white/[0.06]">
                 <div className="flex items-center justify-between text-zinc-400 mb-1">
-                  <span className="text-zinc-300 font-bold">Render Cycles</span>
+                  <span className="text-zinc-200 font-bold">Render Cycles</span>
                   <span className="text-[10px] text-zinc-400">#{telemetry.renderCount}</span>
                 </div>
                 <div className="text-[11px] text-zinc-400">
@@ -816,8 +820,8 @@ export default function RandomStringPage() {
             </div>
           </div>
 
-          <div className="mt-4 pt-3 hairline-t text-[11px] text-zinc-500 font-mono flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-status-emerald shrink-0" />
+          <div className="mt-4 pt-3.5 hairline-t text-[11px] text-zinc-400 font-mono flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>WebCrypto CSPRNG active</span>
           </div>
 
@@ -827,7 +831,7 @@ export default function RandomStringPage() {
 
       {/* Batch Results & Multi-Format Export Card */}
       {batchList.length > 1 && (
-        <div className="bg-panel hairline rounded-xl p-5 mb-6 shadow-subtle animate-fade-in">
+        <div className="glass-panel p-6 mb-6 shadow-2xl animate-fade-in">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-2">
               <Layers className="w-4 h-4 text-zinc-400" />

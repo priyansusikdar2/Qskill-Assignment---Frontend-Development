@@ -70,7 +70,7 @@ export function detectLanguageLocal(text) {
 }
 
 const STORAGE_KEY_RAPIDAPI = 'qskill_rapidapi_config';
-const CACHE_STORAGE_KEY = 'qskill_translation_cache_v1';
+const CACHE_STORAGE_KEY = 'qskill_translation_cache_v2';
 const MAX_CACHE_ENTRIES = 100;
 
 // In-Memory & LocalStorage backed LRU Cache
@@ -252,32 +252,37 @@ export async function translateText({
 
       if (response.ok) {
         const data = await response.json();
-        const translated =
-          data?.trans ||
-          data?.translated_text ||
-          data?.data?.translations?.[0]?.translatedText ||
-          data?.translations?.[0]?.text ||
-          (typeof data === 'string' ? data : null);
+        const hasRateLimit = Boolean(data?.message && typeof data.message === 'string' && data.message.toLowerCase().includes('rate limit'));
 
-        if (translated) {
-          const latencyMs = Math.round(performance.now() - startTime);
-          const decoded = decodeHtmlEntities(translated);
+        if (!hasRateLimit) {
+          const translated =
+            data?.trans ||
+            data?.translated_text ||
+            data?.data?.translations?.[0]?.translatedText ||
+            data?.translations?.[0]?.text ||
+            (typeof data === 'string' && !data.includes('rate limit') ? data : null);
 
-          translationCache.set(cacheKey, {
-            text: decoded,
-            engine: `RapidAPI (${config.apiHost})`,
-            source: 'rapidapi',
-            detectedSource,
-          });
+          if (translated) {
+            const latencyMs = Math.round(performance.now() - startTime);
+            const decoded = decodeHtmlEntities(translated);
+            const toned = applyToneAdapter(decoded, tone, targetLang);
 
-          return {
-            translatedText: decoded,
-            engine: `RapidAPI (${config.apiHost})`,
-            latencyMs,
-            fromCache: false,
-            source: 'rapidapi',
-            detectedSource,
-          };
+            translationCache.set(cacheKey, {
+              text: toned,
+              engine: `RapidAPI (${config.apiHost})`,
+              source: 'rapidapi',
+              detectedSource,
+            });
+
+            return {
+              translatedText: toned,
+              engine: `RapidAPI (${config.apiHost})`,
+              latencyMs,
+              fromCache: false,
+              source: 'rapidapi',
+              detectedSource,
+            };
+          }
         }
       }
     } catch (err) {
@@ -307,19 +312,20 @@ export async function translateText({
 
     if (translatedText) {
       const decoded = decodeHtmlEntities(translatedText);
+      const toned = applyToneAdapter(decoded, tone, targetLang);
       const engineName = config.apiKey
         ? 'Fallback Provider (MyMemory)'
         : 'Resilient Free Provider (MyMemory)';
 
       translationCache.set(cacheKey, {
-        text: decoded,
+        text: toned,
         engine: engineName,
         source: 'fallback',
         detectedSource,
       });
 
       return {
-        translatedText: decoded,
+        translatedText: toned,
         engine: engineName,
         latencyMs,
         fromCache: false,
@@ -335,9 +341,75 @@ export async function translateText({
   }
 }
 
+/**
+ * Semantic Tone Adapter - safely modifies translation phrasing for casual/professional/concise
+ */
+export function applyToneAdapter(text, tone, targetLang) {
+  if (!text || !text.trim() || !tone || tone === 'standard') return text;
+
+  let result = text;
+  
+  if (tone === 'casual') {
+    if (targetLang === 'es') {
+      result = result
+        .replace(/\bUsted tiene\b/gi, 'Tienes')
+        .replace(/\bUsted está\b/gi, 'Estás')
+        .replace(/\bUsted\b/gi, 'Tú')
+        .replace(/\bsu\b/g, 'tu')
+        .replace(/\bsus\b/g, 'tus')
+        .replace(/\bHola, buenos días\b/gi, '¡Hola! ¿Qué tal?')
+        .replace(/\bBuenos días\b/gi, '¡Buenas!')
+        .replace(/\bBuenas tardes\b/gi, '¡Buenas!');
+    } else if (targetLang === 'fr') {
+      result = result
+        .replace(/\bVous avez\b/gi, 'Tu as')
+        .replace(/\bVous êtes\b/gi, 'T\'es')
+        .replace(/\bVous\b/gi, 'Tu')
+        .replace(/\bvotre\b/gi, 'ton')
+        .replace(/\bvos\b/gi, 'tes');
+    } else if (targetLang === 'de') {
+      result = result
+        .replace(/\bSie haben\b/g, 'Du hast')
+        .replace(/\bSie sind\b/g, 'Du bist')
+        .replace(/\bIhnen\b/g, 'dir')
+        .replace(/\bIhr\b/g, 'dein')
+        .replace(/\bSie\b/g, 'du');
+    } else if (targetLang === 'en') {
+      result = result
+        .replace(/\bHello, nice to meet you\b/gi, 'Hey, great to meet you!')
+        .replace(/\bHello\b/gi, 'Hey')
+        .replace(/\bdo not\b/gi, "don't")
+        .replace(/\bcannot\b/gi, "can't")
+        .replace(/\bwill not\b/gi, "won't")
+        .replace(/\byou are\b/gi, "you're")
+        .replace(/\bI am\b/gi, "I'm")
+        .replace(/\bI would like to\b/gi, "I'd love to");
+    }
+  } else if (tone === 'professional') {
+    if (targetLang === 'es') {
+      result = result
+        .replace(/\bHola\b/gi, 'Estimado/a, reciba un cordial saludo')
+        .replace(/\btú tienes\b/gi, 'usted dispone de')
+        .replace(/\btú\b/gi, 'usted');
+    } else if (targetLang === 'en') {
+      result = result
+        .replace(/\bhey\b/gi, 'Greetings')
+        .replace(/\bcan you\b/gi, 'Would you kindly')
+        .replace(/\bthanks\b/gi, 'Thank you very much');
+    }
+  } else if (tone === 'concise') {
+    result = result
+      .replace(/,\s*(please|por favor|s'il vous plaît|bitte)\.?$/gi, '.')
+      .replace(/^(Please note that|Tenga en cuenta que|Veuillez noter que)\s*/gi, '');
+  }
+
+  return result;
+}
+
 function decodeHtmlEntities(str) {
   if (!str) return '';
   const txt = document.createElement('textarea');
   txt.innerHTML = str;
   return txt.value;
 }
+

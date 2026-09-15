@@ -27,16 +27,17 @@ export default function ArchitecturePage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 sm:px-6">
+    <div className="w-full max-w-[98%] 2xl:max-w-[1800px] mx-auto px-3 sm:px-6 lg:px-8 py-5">
       
       {/* Title & Badge */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-base font-semibold text-zinc-100 tracking-tight">
-              Architecture & Technical Specifications
+            <h1 className="text-lg font-bold text-zinc-100 tracking-tight flex items-center gap-2">
+              <span>Architecture & Technical Specifications</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse"></span>
             </h1>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700/60">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full glass-pill text-emerald-300 font-medium border-emerald-500/30">
               Evaluation Guide
             </span>
           </div>
@@ -46,76 +47,76 @@ export default function ArchitecturePage() {
         </div>
 
         {/* Tab switcher */}
-        <div className="flex items-center bg-panel hairline rounded-lg p-0.5 text-xs font-mono shrink-0">
+        <div className="flex items-center glass-panel p-1 rounded-xl text-xs font-mono shrink-0">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-              activeTab === 'overview' ? 'bg-zinc-800 text-zinc-100 shadow-subtle' : 'text-zinc-400 hover:text-zinc-200'
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+              activeTab === 'overview' ? 'glass-pill-active text-white font-semibold shadow-md' : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
             Pillars
           </button>
           <button
             onClick={() => setActiveTab('hooks')}
-            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-              activeTab === 'hooks' ? 'bg-zinc-800 text-zinc-100 shadow-subtle' : 'text-zinc-400 hover:text-zinc-200'
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+              activeTab === 'hooks' ? 'glass-pill-active text-white font-semibold shadow-md' : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
-            Hook Specs
+            Hooks Spec
           </button>
           <button
-            onClick={() => setActiveTab('resiliency')}
-            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-              activeTab === 'resiliency' ? 'bg-zinc-800 text-zinc-100 shadow-subtle' : 'text-zinc-400 hover:text-zinc-200'
+            onClick={() => setActiveTab('security')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+              activeTab === 'security' ? 'glass-pill-active text-white font-semibold shadow-md' : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
-            API & Secrets
+            Secrets Flow
           </button>
         </div>
       </div>
 
       {/* 3 Core Architecture Pillars */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
         
-        <div className="p-4 rounded-xl bg-panel hairline flex flex-col justify-between shadow-subtle">
+        <div className="glass-panel p-6 shadow-2xl flex flex-col justify-between">
           <div>
-            <div className="w-8 h-8 rounded-lg bg-bg hairline flex items-center justify-center text-zinc-200 mb-3">
-              <Zap className="w-4 h-4 text-accent-400" />
+            <div className="w-9 h-9 rounded-xl glass-pill flex items-center justify-center text-zinc-200 mb-3.5 shadow-sm">
+              <Zap className="w-4 h-4 text-indigo-400" />
             </div>
             <div className="flex items-center justify-between mb-1">
-              <h3 className="text-xs font-semibold text-zinc-100">Module 1: Translation Engine</h3>
-              <span className="text-[10px] font-mono text-zinc-500">Task 1</span>
+              <h3 className="text-xs font-semibold text-zinc-100 font-sans tracking-wide">Module 1: Translation Engine</h3>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full glass-pill text-indigo-300">Task 1</span>
             </div>
             <p className="text-[11px] text-zinc-400 leading-relaxed">
               English to 24+ languages using RapidAPI with credentials management, speech-to-text dictation, and speech synthesis.
             </p>
           </div>
-          <Link to="/translator" className="mt-4 inline-flex items-center gap-1 text-xs text-zinc-300 hover:text-white font-medium transition-colors">
+          <Link to="/translator" className="mt-4 inline-flex items-center gap-1.5 text-xs text-indigo-300 hover:text-white font-medium transition-colors">
             <span>Open Translation Studio</span>
-            <ArrowRight className="w-3 h-3 text-zinc-500" />
+            <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        <div className="p-4 rounded-xl bg-panel hairline flex flex-col justify-between shadow-subtle">
+        <div className="glass-panel p-6 shadow-2xl flex flex-col justify-between">
           <div>
-            <div className="w-8 h-8 rounded-lg bg-bg hairline flex items-center justify-center text-zinc-200 mb-3">
-              <Cpu className="w-4 h-4 text-status-emerald" />
+            <div className="w-9 h-9 rounded-xl glass-pill flex items-center justify-center text-zinc-200 mb-3.5 shadow-sm">
+              <Cpu className="w-4 h-4 text-emerald-400" />
             </div>
             <div className="flex items-center justify-between mb-1">
-              <h3 className="text-xs font-semibold text-zinc-100">Module 2: Token Studio</h3>
-              <span className="text-[10px] font-mono text-zinc-500">Task 2</span>
+              <h3 className="text-xs font-semibold text-zinc-100 font-sans tracking-wide">Module 2: Token Studio</h3>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full glass-pill text-emerald-300">Task 2</span>
             </div>
             <p className="text-[11px] text-zinc-400 leading-relaxed">
               Cryptographically secure string engine strictly built on <code className="text-zinc-200 font-mono">useState</code>, <code className="text-zinc-200 font-mono">useCallback</code>, and <code className="text-zinc-200 font-mono">useEffect</code> hooks.
             </p>
           </div>
-          <Link to="/random-string" className="mt-4 inline-flex items-center gap-1 text-xs text-zinc-300 hover:text-white font-medium transition-colors">
+          <Link to="/random-string" className="mt-4 inline-flex items-center gap-1.5 text-xs text-emerald-300 hover:text-white font-medium transition-colors">
             <span>Open Token Studio</span>
-            <ArrowRight className="w-3 h-3 text-zinc-500" />
+            <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        <div className="p-4 rounded-xl bg-panel hairline flex flex-col justify-between shadow-subtle">
+        <div className="glass-panel p-6 shadow-2xl flex flex-col justify-between">
           <div>
             <div className="w-8 h-8 rounded-lg bg-bg hairline flex items-center justify-center text-zinc-200 mb-3">
               <GitBranch className="w-4 h-4 text-status-cyan" />

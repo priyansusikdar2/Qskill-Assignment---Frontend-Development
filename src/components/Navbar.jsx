@@ -19,38 +19,38 @@ export default function Navbar({ onOpenApiModal, hasApiKey, apiSource, onOpenCom
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full hairline-b bg-bg/85 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14">
+    <header className="sticky top-0 z-40 w-full border-b border-white/[0.08] bg-zinc-950/70 backdrop-blur-2xl shadow-xl">
+      <div className="max-w-[98%] 2xl:max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-15">
           
           {/* Logo & Product Identity */}
           <Link to="/translator" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg bg-panel-elevated hairline flex items-center justify-center text-zinc-100 group-hover:border-zinc-500 transition-colors">
-              <span className="font-mono font-bold text-xs tracking-tighter">QS</span>
+            <div className="w-8 h-8 rounded-lg glass-pill flex items-center justify-center text-zinc-100 group-hover:border-indigo-400/60 group-hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] transition-all">
+              <span className="font-mono font-bold text-xs tracking-tighter text-indigo-300">QS</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm text-zinc-100 tracking-tight">QSkill<span className="text-zinc-500 font-normal">Suite</span></span>
-              <span className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono rounded bg-zinc-800 text-zinc-400 border border-zinc-700/60">
-                Slab 1
+              <span className="font-semibold text-sm text-zinc-100 tracking-tight">QSkill<span className="text-indigo-400 font-semibold">Suite</span></span>
+              <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-mono rounded-full glass-pill text-zinc-300">
+                Enterprise
               </span>
             </div>
           </Link>
 
           {/* Precision Segmented Navigation */}
-          <nav className="hidden md:flex items-center p-1 rounded-lg bg-panel hairline">
+          <nav className="hidden md:flex items-center p-1 rounded-xl glass-panel">
             <NavLink
               to="/translator"
               id="nav-translator"
               onClick={() => sounds.playClick()}
               className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                `flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   isActive
-                    ? 'bg-panel-elevated text-zinc-100 shadow-subtle hairline text-white'
+                    ? 'glass-pill-active text-white font-semibold shadow-md'
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]'
                 }`
               }
             >
-              <Languages className="w-3.5 h-3.5 text-zinc-400" />
+              <Languages className="w-3.5 h-3.5 text-indigo-400" />
               <span>Translator</span>
             </NavLink>
 
@@ -59,14 +59,14 @@ export default function Navbar({ onOpenApiModal, hasApiKey, apiSource, onOpenCom
               id="nav-random-string"
               onClick={() => sounds.playClick()}
               className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                `flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   isActive
-                    ? 'bg-panel-elevated text-zinc-100 shadow-subtle hairline text-white'
+                    ? 'glass-pill-active text-white font-semibold shadow-md'
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03]'
                 }`
               }
             >
-              <Shuffle className="w-3.5 h-3.5 text-zinc-400" />
+              <Shuffle className="w-3.5 h-3.5 text-indigo-400" />
               <span>Random Studio</span>
             </NavLink>
 
@@ -116,10 +116,10 @@ export default function Navbar({ onOpenApiModal, hasApiKey, apiSource, onOpenCom
             <button
               onClick={onOpenApiModal}
               id="btn-rapidapi-settings"
-              className="flex items-center gap-2 px-2.5 py-1.5 rounded-md hairline bg-panel hover:bg-panel-elevated hover:border-zinc-600 text-xs font-mono text-zinc-300 transition-colors"
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-md hairline bg-panel hover:bg-panel-elevated hover:border-zinc-600 text-xs font-mono text-zinc-300 transition-colors cursor-pointer"
               title="Configure RapidAPI Key & Endpoint"
             >
-              <span className={`w-1.5 h-1.5 rounded-full ${hasApiKey ? 'bg-status-emerald' : 'bg-status-amber'}`} />
+              <span className={`w-1.5 h-1.5 rounded-full ${hasApiKey ? 'bg-status-emerald shadow-[0_0_8px_rgba(16,185,129,0.7)]' : 'bg-status-amber'}`} />
               <KeyRound className="w-3 h-3 text-zinc-400" />
               <span className="text-[11px] hidden sm:inline">
                 {getStatusLabel()}

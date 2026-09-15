@@ -89,54 +89,215 @@
   border-color: rgba(255, 255, 255, 0.16);
 }
 
-/* Ambient subtle top glow */
+/* Rich Cosmic Ambient Lights for Deep Glassmorphism */
 .ambient-glow {
+  background-color: #09090e;
   background-image: 
-    radial-gradient(circle at 50% -10%, rgba(59, 130, 246, 0.07) 0%, transparent 60%),
-    radial-gradient(circle at 85% 10%, rgba(16, 185, 129, 0.03) 0%, transparent 40%);
+    radial-gradient(ellipse 70% 40% at 20% -10%, rgba(99, 102, 241, 0.18) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 85% 5%, rgba(16, 185, 129, 0.12) 0%, transparent 60%),
+    radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 80%),
+    radial-gradient(circle at 10% 80%, rgba(168, 85, 247, 0.10) 0%, transparent 70%);
+  background-attachment: fixed;
+}
+
+/* Glassmorphic Panel Design System */
+.glass-panel {
+  background: rgba(18, 18, 28, 0.65);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 16px;
+  box-shadow: 
+    0 20px 50px -12px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
+    inset 0 0 20px 0 rgba(255, 255, 255, 0.01);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  pointer-events: none;
+}
+
+/* Interactive Frosted Glass Cards */
+.glass-card-interactive {
+  background: rgba(22, 22, 34, 0.50);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  box-shadow: 0 8px 30px -6px rgba(0, 0, 0, 0.4);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card-interactive:hover {
+  background: rgba(30, 30, 46, 0.70);
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 0 16px 40px -10px rgba(99, 102, 241, 0.25);
+  transform: translateY(-2px);
+}
+
+/* Glass Pill Buttons */
+.glass-pill {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  transition: all 0.2s ease;
+}
+
+.glass-pill:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.3);
+}
+
+.glass-pill-active {
+  background: rgba(99, 102, 241, 0.25);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(129, 140, 248, 0.5);
+  box-shadow: 0 0 18px rgba(99, 102, 241, 0.35);
 }
 
 /* Custom Sleek Range Slider */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
-  background: #27272a;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 9999px;
-  height: 5px;
+  height: 6px;
   outline: none;
+  backdrop-filter: blur(6px);
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: #3b82f6;
+  background: #6366f1;
   cursor: pointer;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.7);
   border: 2px solid #ffffff;
-  transition: transform 0.1s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.18);
+  transform: scale(1.25);
+  box-shadow: 0 0 18px rgba(99, 102, 241, 0.9);
 }
 input[type="range"]::-moz-range-thumb {
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: #3b82f6;
+  background: #6366f1;
   cursor: pointer;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.7);
   border: 2px solid #ffffff;
 }
 
 /* Equalizer Bars Animation */
 @keyframes eqBar {
   0%, 100% { height: 4px; }
-  50% { height: 18px; }
+  50% { height: 20px; }
 }
-.animate-eq-1 { animation: eqBar 0.6s infinite ease-in-out; }
-.animate-eq-2 { animation: eqBar 0.8s infinite ease-in-out 0.15s; }
-.animate-eq-3 { animation: eqBar 0.5s infinite ease-in-out 0.3s; }
-.animate-eq-4 { animation: eqBar 0.7s infinite ease-in-out 0.1s; }
+.animate-eq-1 { animation: eqBar 0.55s infinite ease-in-out; }
+.animate-eq-2 { animation: eqBar 0.75s infinite ease-in-out 0.12s; }
+.animate-eq-3 { animation: eqBar 0.45s infinite ease-in-out 0.25s; }
+.animate-eq-4 { animation: eqBar 0.65s infinite ease-in-out 0.1s; }
+
+/* Dynamic Floating Aurora Animations */
+@keyframes auroraSlow {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(50px, 40px) scale(1.08);
+  }
+  66% {
+    transform: translate(-30px, 60px) scale(0.95);
+  }
+}
+@keyframes auroraReverse {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(-60px, 50px) scale(1.12);
+  }
+  66% {
+    transform: translate(40px, -30px) scale(0.92);
+  }
+}
+@keyframes auroraMid {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(30px, -40px) scale(1.1);
+  }
+}
+.animate-aurora-slow {
+  animation: auroraSlow 18s infinite ease-in-out;
+}
+.animate-aurora-reverse {
+  animation: auroraReverse 22s infinite ease-in-out;
+}
+.animate-aurora-mid {
+  animation: auroraMid 15s infinite ease-in-out;
+}
+
+/* Lively Translated Text Reveal */
+@keyframes textReveal {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-text-reveal {
+  animation: textReveal 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Gradient Beam Sweep for Action Buttons */
+@keyframes beamSweep {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+.animate-beam-sweep {
+  background-size: 200% 200%;
+  animation: beamSweep 4s ease infinite;
+}
+
+/* Radiant Glowing Button */
+.btn-glow-gradient {
+  background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 50%, #06b6d4 100%);
+  background-size: 200% 200%;
+  box-shadow: 0 0 20px -3px rgba(79, 70, 229, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-glow-gradient:hover {
+  box-shadow: 0 0 30px 2px rgba(79, 70, 229, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px) scale(1.02);
+}
+.btn-glow-gradient:active {
+  transform: translateY(0) scale(0.98);
+}
+
 
