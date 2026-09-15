@@ -3,6 +3,7 @@
  */
 
 export const SUPPORTED_LANGUAGES = [
+  { code: 'en', name: 'English', native: 'English', flag: '🇬🇧', speechCode: 'en-US' },
   { code: 'es', name: 'Spanish', native: 'Español', flag: '🇪🇸', speechCode: 'es-ES' },
   { code: 'fr', name: 'French', native: 'Français', flag: '🇫🇷', speechCode: 'fr-FR' },
   { code: 'de', name: 'German', native: 'Deutsch', flag: '🇩🇪', speechCode: 'de-DE' },
@@ -29,12 +30,44 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'ur', name: 'Urdu', native: 'اردو', flag: '🇵🇰', speechCode: 'ur-PK', dir: 'rtl' }
 ];
 
+export const SOURCE_LANGUAGES = [
+  { code: 'auto', name: 'Auto Detect', native: 'Auto', flag: '✨', speechCode: 'en-US' },
+  ...SUPPORTED_LANGUAGES
+];
+
 export const TONE_MODIFIERS = [
   { id: 'standard', label: 'Standard', description: 'Direct natural translation' },
   { id: 'professional', label: 'Professional', description: 'Formal, business-ready terminology' },
   { id: 'casual', label: 'Casual', description: 'Friendly and conversational' },
   { id: 'concise', label: 'Concise', description: 'Compact and direct' },
 ];
+
+/**
+ * Intelligent client-side script & n-gram language detector
+ */
+export function detectLanguageLocal(text) {
+  if (!text || !text.trim()) return 'en';
+  // Unicode Script Ranges
+  if (/[\u0900-\u097F]/.test(text)) return 'hi'; // Devanagari (Hindi)
+  if (/[\u0980-\u09FF]/.test(text)) return 'bn'; // Bengali
+  if (/[\u0B80-\u0BFF]/.test(text)) return 'ta'; // Tamil
+  if (/[\u0C00-\u0C7F]/.test(text)) return 'te'; // Telugu
+  if (/[\u0600-\u06FF]/.test(text)) return 'ar'; // Arabic / Urdu
+  if (/[\u0400-\u04FF]/.test(text)) return 'ru'; // Cyrillic (Russian/Ukrainian)
+  if (/[\u3040-\u309F\u30A0-\u30FF]/.test(text)) return 'ja'; // Japanese Hiragana/Katakana
+  if (/[\u4E00-\u9FFF]/.test(text)) return 'zh'; // Chinese
+  if (/[\uAC00-\uD7AF]/.test(text)) return 'ko'; // Korean Hangul
+  if (/[\u0370-\u03FF]/.test(text)) return 'el'; // Greek
+  if (/[\u0E00-\u0E7F]/.test(text)) return 'th'; // Thai
+  // Common European diacritics
+  if (/[áéíóúñ¿¡]/i.test(text)) return 'es'; // Spanish
+  if (/[àâçèêëîïôûùüÿœæ]/i.test(text)) return 'fr'; // French
+  if (/[äöüß]/i.test(text)) return 'de'; // German
+  if (/[ãõçáéíóúâêô]/i.test(text)) return 'pt'; // Portuguese
+  if (/[ąćęłńóśźż]/i.test(text)) return 'pl'; // Polish
+  if (/[öäå]/i.test(text)) return 'sv'; // Swedish
+  return 'en'; // Default
+}
 
 const STORAGE_KEY_RAPIDAPI = 'qskill_rapidapi_config';
 const CACHE_STORAGE_KEY = 'qskill_translation_cache_v1';
@@ -78,7 +111,10 @@ class TranslationCache {
   }
 
   set(key, val) {
-    if (this.memory.size >= MAX_CACHE_ENTRIES) {
+    if (this.memory.has(key)) {
+      this.memory.delete(key);
+    } else if (this.memory.size >= MAX_CACHE_ENTRIES) {
+      // Evict oldest (first) key
       const oldestKey = this.memory.keys().next().value;
       this.memory.delete(oldestKey);
     }
@@ -129,12 +165,20 @@ export function getStoredApiConfig() {
   };
 }
 
-export function saveApiConfig(config) {
+export function saveApiConfig({ apiKey, apiHost }) {
+  if (!apiKey || !apiKey.trim()) {
+    localStorage.removeItem(STORAGE_KEY_RAPIDAPI);
+    return;
+  }
+  const config = {
+    apiKey: apiKey.trim(),
+    apiHost: (apiHost || ENV.RAPIDAPI_HOST).trim(),
+  };
   localStorage.setItem(STORAGE_KEY_RAPIDAPI, JSON.stringify(config));
 }
 
 /**
- * Perform translation with AbortController, Caching, and Tone Handling
+ * Core Translation Invocation Function
  */
 export async function translateText({
   text,
@@ -149,6 +193,7 @@ export async function translateText({
   }
 
   const trimmedText = text.trim();
+  const detectedSource = sourceLang === 'auto' ? detectLanguageLocal(trimmedText) : sourceLang;
   const cacheKey = `${sourceLang}:${targetLang}:${tone}:${trimmedText.toLowerCase()}`;
 
   // Check Cache first (zero-latency cache hit)
@@ -160,6 +205,7 @@ export async function translateText({
       latencyMs: 1,
       fromCache: true,
       source: cached.source,
+      detectedSource: cached.detectedSource || detectedSource,
     };
   }
 
@@ -169,27 +215,49 @@ export async function translateText({
   // If RapidAPI key provided, call RapidAPI endpoint
   if (config.apiKey && config.apiKey.trim()) {
     try {
-      const response = await fetch(`https://${config.apiHost}/language/translate/v2`, {
-        method: 'POST',
-        signal,
-        headers: {
-          'content-type': 'application/x-www-form-urlencoded',
-          'Accept-Encoding': 'application/gzip',
-          'X-RapidAPI-Key': config.apiKey.trim(),
-          'X-RapidAPI-Host': config.apiHost.trim(),
-        },
-        body: new URLSearchParams({
+      const isTranslate113 = config.apiHost && config.apiHost.includes('google-translate113');
+      const endpoint = isTranslate113
+        ? `https://${config.apiHost}/api/v1/translator/text`
+        : `https://${config.apiHost}/language/translate/v2`;
+
+      const headers = {
+        'X-RapidAPI-Key': config.apiKey.trim(),
+        'X-RapidAPI-Host': config.apiHost.trim(),
+      };
+
+      let body;
+      if (isTranslate113) {
+        headers['content-type'] = 'application/json';
+        body = JSON.stringify({
+          from: sourceLang === 'auto' ? 'auto' : sourceLang,
+          to: targetLang,
+          text: trimmedText,
+        });
+      } else {
+        headers['content-type'] = 'application/x-www-form-urlencoded';
+        headers['Accept-Encoding'] = 'application/gzip';
+        body = new URLSearchParams({
           q: trimmedText,
           target: targetLang,
-          source: sourceLang,
-        }),
+          source: sourceLang === 'auto' ? detectedSource : sourceLang,
+        });
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        signal,
+        headers,
+        body,
       });
 
       if (response.ok) {
         const data = await response.json();
         const translated =
+          data?.trans ||
+          data?.translated_text ||
           data?.data?.translations?.[0]?.translatedText ||
-          data?.translations?.[0]?.text;
+          data?.translations?.[0]?.text ||
+          (typeof data === 'string' ? data : null);
 
         if (translated) {
           const latencyMs = Math.round(performance.now() - startTime);
@@ -197,16 +265,18 @@ export async function translateText({
 
           translationCache.set(cacheKey, {
             text: decoded,
-            engine: 'RapidAPI (Google Translate)',
+            engine: `RapidAPI (${config.apiHost})`,
             source: 'rapidapi',
+            detectedSource,
           });
 
           return {
             translatedText: decoded,
-            engine: 'RapidAPI (Google Translate)',
+            engine: `RapidAPI (${config.apiHost})`,
             latencyMs,
             fromCache: false,
             source: 'rapidapi',
+            detectedSource,
           };
         }
       }
@@ -220,7 +290,8 @@ export async function translateText({
 
   // Resilient High-Availability Fallback: MyMemory API
   try {
-    const langPair = `${sourceLang}|${targetLang}`;
+    const actualSource = sourceLang === 'auto' ? detectedSource : sourceLang;
+    const langPair = `${actualSource}|${targetLang}`;
     const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(
       trimmedText
     )}&langpair=${encodeURIComponent(langPair)}`;
@@ -244,6 +315,7 @@ export async function translateText({
         text: decoded,
         engine: engineName,
         source: 'fallback',
+        detectedSource,
       });
 
       return {
@@ -252,6 +324,7 @@ export async function translateText({
         latencyMs,
         fromCache: false,
         source: 'fallback',
+        detectedSource,
       };
     }
     throw new Error('No translated response received');

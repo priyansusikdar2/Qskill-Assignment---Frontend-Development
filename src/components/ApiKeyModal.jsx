@@ -62,7 +62,7 @@ export default function ApiKeyModal({ isOpen, onClose, onConfigSaved }) {
       if (res && res.translatedText) {
         setTestResult({
           success: true,
-          message: `Success! Translated with ${res.engine} in ${res.latencyMs}ms: "${res.translatedText}"`,
+          message: `Verified (${res.engine}) in ${res.latencyMs}ms: "${res.translatedText}"`,
         });
       } else {
         setTestResult({
@@ -73,7 +73,7 @@ export default function ApiKeyModal({ isOpen, onClose, onConfigSaved }) {
     } catch (err) {
       setTestResult({
         success: false,
-        message: `API verification failed: ${err.message}`,
+        message: `Verification failed: ${err.message}`,
       });
     } finally {
       setTesting(false);
@@ -81,42 +81,42 @@ export default function ApiKeyModal({ isOpen, onClose, onConfigSaved }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+      <div className="relative w-full max-w-lg bg-panel hairline shadow-modal rounded-xl overflow-hidden animate-slide-down">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/60">
+        <div className="flex items-center justify-between px-5 py-3.5 hairline-b bg-bg-subtle">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-              <KeyRound className="w-5 h-5" />
+            <div className="p-1.5 rounded-md bg-zinc-800 text-zinc-300 hairline">
+              <KeyRound className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-white">RapidAPI & Environment Secrets</h3>
-              <p className="text-xs text-slate-400">Configure credentials via .env file or UI</p>
+              <h3 className="text-sm font-semibold text-zinc-100">API Credentials & Endpoint Secrets</h3>
+              <p className="text-[11px] text-zinc-400">RapidAPI Google Translate configuration & local overrides</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1 rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-4">
+        <div className="p-5 space-y-4 text-xs">
           
-          {/* Environment Status Pill */}
-          <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <FileCode className="w-4 h-4 text-emerald-400 shrink-0" />
+          {/* Credential Source Status */}
+          <div className="p-3 rounded-lg bg-bg hairline flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <FileCode className="w-4 h-4 text-status-emerald shrink-0" />
               <div>
-                <span className="text-slate-300 font-medium block">Credential Source</span>
-                <span className="text-[11px] text-slate-400">
+                <span className="text-zinc-200 font-medium block">Credential Source</span>
+                <span className="text-[11px] text-zinc-400 font-mono">
                   {config.source === '.env'
                     ? 'Active from project .env file (VITE_RAPIDAPI_KEY)'
                     : config.source === 'localStorage'
-                    ? 'Manual UI Override in localStorage'
+                    ? 'Custom UI Override in LocalStorage'
                     : 'Default Resilient Fallback Engine'}
                 </span>
               </div>
@@ -126,26 +126,26 @@ export default function ApiKeyModal({ isOpen, onClose, onConfigSaved }) {
               <button
                 type="button"
                 onClick={handleResetToEnv}
-                className="text-[11px] text-indigo-400 hover:text-indigo-300 underline"
+                className="text-[11px] text-accent-400 hover:text-accent-300 underline font-mono cursor-pointer"
               >
                 Reset to .env
               </button>
             )}
           </div>
 
-          <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300 flex items-start gap-2.5 leading-relaxed">
-            <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5 text-indigo-400" />
+          <div className="p-3 rounded-lg bg-zinc-900/70 hairline text-[11px] text-zinc-300 flex items-start gap-2.5 leading-relaxed">
+            <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5 text-zinc-400" />
             <div>
-              <strong className="text-indigo-200">Zero-Friction Fallback:</strong> If no RapidAPI key is set in your <code className="text-indigo-300 font-mono">.env</code> file or below, the app automatically translates via our free public fallback engine (MyMemory).
+              <strong className="text-zinc-200">Resilient Architecture:</strong> If no custom RapidAPI key is set, the application automatically translates via our public fallback engine (MyMemory) so translation remains 100% functional.
             </div>
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                RapidAPI Key (VITE_RAPIDAPI_KEY)
+              <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-300">
+                RapidAPI Key
               </label>
-              <span className="text-[10px] text-slate-500 font-mono">
+              <span className="text-[10px] text-zinc-500 font-mono">
                 {config.source === '.env' ? 'Synced from .env' : 'Custom'}
               </span>
             </div>
@@ -154,38 +154,38 @@ export default function ApiKeyModal({ isOpen, onClose, onConfigSaved }) {
               id="rapidapi-key-input"
               value={config.apiKey}
               onChange={(e) => setConfig({ ...config, apiKey: e.target.value, source: 'localStorage' })}
-              placeholder="Paste key or configure in .env file"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono transition-colors"
+              placeholder="Paste X-RapidAPI-Key"
+              className="w-full px-3 py-2 rounded-lg bg-bg hairline text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-500 font-mono transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
-              RapidAPI Host (VITE_RAPIDAPI_HOST)
+            <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-300 mb-1.5">
+              RapidAPI Host
             </label>
             <input
               type="text"
               id="rapidapi-host-input"
               value={config.apiHost}
               onChange={(e) => setConfig({ ...config, apiHost: e.target.value, source: 'localStorage' })}
-              placeholder="google-translate1.p.rapidapi.com"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono transition-colors"
+              placeholder="google-translate113.p.rapidapi.com"
+              className="w-full px-3 py-2 rounded-lg bg-bg hairline text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-500 font-mono transition-colors"
             />
           </div>
 
           {/* Test connection result display */}
           {testResult && (
             <div
-              className={`p-3 rounded-xl border text-xs flex items-start gap-2 ${
+              className={`p-2.5 rounded-lg hairline text-[11px] font-mono flex items-start gap-2 ${
                 testResult.success
-                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
-                  : 'bg-rose-500/10 border-rose-500/20 text-rose-300'
+                  ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-300'
+                  : 'bg-rose-950/40 border-rose-800/60 text-rose-300'
               }`}
             >
               {testResult.success ? (
-                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5 text-status-emerald" />
               ) : (
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
+                <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-status-rose" />
               )}
               <span>{testResult.message}</span>
             </div>
@@ -197,49 +197,49 @@ export default function ApiKeyModal({ isOpen, onClose, onConfigSaved }) {
               onClick={handleTestKey}
               disabled={testing || !config.apiKey.trim()}
               id="btn-test-rapidapi"
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-50 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium hairline bg-zinc-800 hover:bg-zinc-700 text-zinc-200 disabled:opacity-50 transition-colors cursor-pointer"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${testing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3 h-3 ${testing ? 'animate-spin' : ''}`} />
               {testing ? 'Testing...' : 'Test Connection'}
             </button>
 
             <a
-              href="https://rapidapi.com/googlecloud/api/google-translate1"
+              href="https://rapidapi.com/hub"
               target="_blank"
               rel="noreferrer"
-              className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+              className="text-xs text-zinc-400 hover:text-zinc-200 flex items-center gap-1 transition-colors"
             >
-              Get Free RapidAPI Key <ExternalLink className="w-3 h-3" />
+              Open RapidAPI Hub <ExternalLink className="w-3 h-3" />
             </a>
           </div>
 
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-800 bg-slate-950/60">
+        <div className="flex items-center justify-between px-5 py-3 hairline-t bg-bg-subtle">
           <button
             type="button"
             onClick={handleClear}
-            className="text-xs text-rose-400 hover:text-rose-300 font-medium cursor-pointer"
+            className="text-xs text-zinc-400 hover:text-rose-400 font-medium transition-colors cursor-pointer"
           >
-            Clear Stored Credentials
+            Clear Stored Key
           </button>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-md text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
             >
-              Close
+              Cancel
             </button>
             <button
               type="button"
               id="btn-save-rapidapi"
               onClick={handleSave}
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30 transition-all cursor-pointer"
+              className="px-3.5 py-1.5 rounded-md text-xs font-semibold bg-zinc-100 hover:bg-white text-zinc-950 transition-colors cursor-pointer shadow-subtle"
             >
-              Save Configuration
+              Save Credentials
             </button>
           </div>
         </div>

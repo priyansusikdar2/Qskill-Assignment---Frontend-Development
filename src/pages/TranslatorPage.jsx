@@ -8,46 +8,59 @@ import {
   VolumeX, 
   Mic, 
   MicOff, 
-  Sparkles, 
-  RotateCcw, 
   History, 
   Clock, 
   Trash2, 
   Zap, 
   UploadCloud, 
   Download, 
-  Layers, 
-  FileText, 
   Columns, 
-  SlidersHorizontal,
-  Flame,
-  CheckCircle2,
-  Database
+  Database,
+  ArrowRight,
+  Search,
+  BookOpen,
+  BarChart2,
+  Share2
 } from 'lucide-react';
 import { 
   SUPPORTED_LANGUAGES, 
+  SOURCE_LANGUAGES,
   TONE_MODIFIERS, 
-  translateText, 
-  getStoredApiConfig 
+  translateText 
 } from '../services/translationService';
 import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { sounds } from '../utils/audioFeedback';
+import LanguageSelect from '../components/LanguageSelect';
+import { useToast } from '../components/Toast';
+import { analyzeText } from '../utils/textAnalytics';
 
 const SAMPLE_PHRASES = [
   "Hello, nice to meet you!",
-  "Front-end development with React and Tailwind CSS.",
-  "Our internship submission features high-performance architecture.",
-  "Could you please guide me to the nearest metro station?"
+  "High-performance frontend architecture with React and Tailwind CSS.",
+  "Cryptographically secure token studio with entropy verification.",
+  "Where is the nearest train station and central business district?"
 ];
 
 export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es' }) {
+  const { addToast } = useToast();
   const [sourceText, setSourceText] = useState('');
+  const [sourceLang, setSourceLang] = useState('auto');
   const [targetLang, setTargetLang] = useState(initialTargetLang);
   const [secondaryLang, setSecondaryLang] = useState('fr'); // For Split View
   const [tone, setTone] = useState('standard');
   const [isSplitView, setIsSplitView] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [historySearch, setHistorySearch] = useState('');
+
+  // Sync prop updates (e.g. when selected via Ctrl+K Command Palette)
+  useEffect(() => {
+    if (initialTargetLang) {
+      setTargetLang(initialTargetLang);
+    }
+  }, [initialTargetLang]);
 
   // Translation states
   const [primaryResult, setPrimaryResult] = useState({ text: '', meta: null });
@@ -75,6 +88,10 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
   } = useSpeechRecognition({ onResult: handleSpeechResult });
 
   // Selected language definitions
+  const sourceLanguageObj = useMemo(() => {
+    return SOURCE_LANGUAGES.find((l) => l.code === sourceLang) || SOURCE_LANGUAGES[0];
+  }, [sourceLang]);
+
   const targetLanguageObj = useMemo(() => {
     return SUPPORTED_LANGUAGES.find((l) => l.code === targetLang) || SUPPORTED_LANGUAGES[0];
   }, [targetLang]);
@@ -82,6 +99,10 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
   const secondaryLanguageObj = useMemo(() => {
     return SUPPORTED_LANGUAGES.find((l) => l.code === secondaryLang) || SUPPORTED_LANGUAGES[1];
   }, [secondaryLang]);
+
+  // Text Complexity Analytics
+  const sourceAnalytics = useMemo(() => analyzeText(sourceText), [sourceText]);
+  const targetAnalytics = useMemo(() => analyzeText(primaryResult.text), [primaryResult.text]);
 
   // Handle Translate Execution with AbortController and Multi-Target support
   const handleTranslate = useCallback(async (textToTranslate = sourceText) => {
@@ -91,7 +112,7 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
       return;
     }
 
-    // Abort any prior in-flight fetch
+    // Abort prior in-flight fetch
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -108,14 +129,14 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
         const [res1, res2] = await Promise.all([
           translateText({
             text: textToTranslate,
-            sourceLang: 'en',
-            targetLang: targetLang,
+            sourceLang,
+            targetLang,
             tone,
             signal,
           }),
           translateText({
             text: textToTranslate,
-            sourceLang: 'en',
+            sourceLang,
             targetLang: secondaryLang,
             tone,
             signal,
@@ -128,8 +149,8 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
       } else {
         const res = await translateText({
           text: textToTranslate,
-          sourceLang: 'en',
-          targetLang: targetLang,
+          sourceLang,
+          targetLang,
           tone,
           signal,
         });
@@ -137,7 +158,7 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
         setPrimaryResult({ text: res.translatedText, meta: res });
         sounds.playSuccess();
 
-        // Persist to history
+        // Push to History
         setHistory((prev) => {
           const entry = {
             id: Date.now(),
@@ -145,21 +166,43 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
             translatedText: res.translatedText,
             targetLang: targetLanguageObj.name,
             flag: targetLanguageObj.flag,
+            sourceLangCode: res.detectedSource || sourceLang,
             engine: res.engine,
             fromCache: res.fromCache,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           };
-          return [entry, ...prev.filter((p) => p.sourceText !== textToTranslate.trim()).slice(0, 9)];
+          return [entry, ...prev.filter((p) => p.sourceText !== textToTranslate.trim()).slice(0, 19)];
         });
       }
     } catch (err) {
       if (err.name === 'AbortError') return;
       console.error('Translation error:', err);
       setError(err.message || 'An error occurred during translation');
+      addToast(err.message || 'Translation request failed', 'error');
     } finally {
       setIsLoading(false);
     }
-  }, [sourceText, targetLang, secondaryLang, isSplitView, tone, targetLanguageObj, setHistory]);
+  }, [sourceText, sourceLang, targetLang, secondaryLang, isSplitView, tone, targetLanguageObj, setHistory, addToast]);
+
+  // Swap Languages Action
+  const handleSwapLanguages = () => {
+    let nextSource = targetLang;
+    let nextTarget = sourceLang === 'auto' ? (primaryResult.meta?.detectedSource || 'en') : sourceLang;
+    
+    setSourceLang(nextSource);
+    setTargetLang(nextTarget);
+
+    // Also swap text if translated output exists
+    if (primaryResult.text) {
+      const prevSource = sourceText;
+      const prevTranslated = primaryResult.text;
+      setSourceText(prevTranslated);
+      setPrimaryResult({ text: prevSource, meta: null });
+    }
+
+    sounds.playPop();
+    addToast(`Swapped: ${nextSource.toUpperCase()} ⇄ ${nextTarget.toUpperCase()}`, 'info');
+  };
 
   // Keyboard shortcut (Ctrl+Enter)
   useEffect(() => {
@@ -186,6 +229,7 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
     navigator.clipboard.writeText(text);
     sounds.playSuccess();
     setCopiedIndex(type);
+    addToast('Translated text copied to clipboard', 'success');
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
@@ -209,8 +253,9 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
     reader.onload = (event) => {
       const content = event.target.result;
       if (content) {
-        setSourceText(content.slice(0, 5000)); // Limit to 5000 chars for safety
+        setSourceText(content.slice(0, 5000));
         sounds.playPop();
+        addToast(`Imported ${file.name} (${Math.min(content.length, 5000)} chars)`, 'info');
       }
     };
     reader.readAsText(file);
@@ -227,31 +272,177 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
     a.click();
     URL.revokeObjectURL(url);
     sounds.playSuccess();
+    addToast('Exported translated file (.txt)', 'success');
   };
+
+  // Export Anki / Quizlet Flashcard Deck
+  const handleExportFlashcards = () => {
+    if (history.length === 0) {
+      addToast('Translate phrases first to generate study flashcards', 'error');
+      return;
+    }
+    // Anki Tab-Separated Values format: Front \t Back \t Tag
+    const tsvContent = history
+      .map((item) => `"${item.sourceText.replace(/"/g, '""')}"\t"${item.translatedText.replace(/"/g, '""')}"\t${item.targetLang}`)
+      .join('\n');
+    const blob = new Blob([tsvContent], { type: 'text/tab-separated-values;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `anki-flashcard-deck-${Date.now()}.tsv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    sounds.playSuccess();
+    addToast(`Exported ${history.length} flashcards (Anki / Quizlet format)`, 'success');
+  };
+
+  // Filter history
+  const filteredHistory = useMemo(() => {
+    if (!historySearch.trim()) return history;
+    return history.filter(
+      (h) =>
+        h.sourceText.toLowerCase().includes(historySearch.toLowerCase()) ||
+        h.translatedText.toLowerCase().includes(historySearch.toLowerCase()) ||
+        h.targetLang.toLowerCase().includes(historySearch.toLowerCase())
+    );
+  }, [history, historySearch]);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6">
       
-      {/* Title & Badge */}
-      <div className="text-center max-w-2xl mx-auto mb-6">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold mb-3">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>Slab 1 • Task 1: Enterprise Text Translator</span>
+      {/* Workbench Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-base font-semibold text-zinc-100 tracking-tight">Polyglot Translation Workstation</h1>
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700/60">
+              Auto-Detect Ready
+            </span>
+          </div>
+          <p className="text-xs text-zinc-400">
+            Real-time multi-engine neural translation with language auto-detection, readability analytics, and flashcards.
+          </p>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-          Intelligent Text <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">Translator</span>
-        </h1>
-        <p className="mt-2 text-sm text-slate-400">
-          Engineered with RapidAPI integration, client-side LRU caching, voice dictation, and multi-language split comparisons.
-        </p>
+
+        {/* Global Toolbar Controls */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Readability Analytics Toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              setShowAnalytics(!showAnalytics);
+              sounds.playClick();
+            }}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hairline text-xs font-medium transition-colors cursor-pointer ${
+              showAnalytics
+                ? 'bg-zinc-800 text-zinc-100 border-zinc-600'
+                : 'bg-panel text-zinc-400 hover:text-zinc-200'
+            }`}
+            title="Toggle Text Complexity & Readability Analyzer"
+          >
+            <BarChart2 className="w-3.5 h-3.5 text-accent-400" />
+            <span className="hidden sm:inline">Analytics</span>
+          </button>
+
+          {/* History Toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              setShowHistory(!showHistory);
+              sounds.playClick();
+            }}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hairline text-xs font-medium transition-colors cursor-pointer ${
+              showHistory
+                ? 'bg-zinc-800 text-zinc-100 border-zinc-600'
+                : 'bg-panel text-zinc-400 hover:text-zinc-200'
+            }`}
+            title="Toggle translation history"
+          >
+            <History className="w-3.5 h-3.5" />
+            <span>History ({history.length})</span>
+          </button>
+
+          {/* Tone Selector */}
+          <div className="flex items-center bg-panel hairline rounded-lg p-0.5 text-xs font-mono">
+            {TONE_MODIFIERS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => {
+                  setTone(t.id);
+                  sounds.playClick();
+                  if (sourceText.trim()) setTimeout(() => handleTranslate(sourceText), 50);
+                }}
+                className={`px-2 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${
+                  tone === t.id 
+                    ? 'bg-zinc-800 text-zinc-100 shadow-subtle' 
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+                title={t.description}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Split View Toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsSplitView(!isSplitView);
+              sounds.playClick();
+            }}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hairline text-xs font-medium transition-colors cursor-pointer ${
+              isSplitView
+                ? 'bg-zinc-800 text-zinc-100 border-zinc-600'
+                : 'bg-panel text-zinc-400 hover:text-zinc-200'
+            }`}
+            title="Translate simultaneously into 2 target languages side-by-side"
+          >
+            <Columns className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Split View</span>
+          </button>
+        </div>
       </div>
 
-      {/* Advanced Toolbar: Split View Toggle & Tone Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6 p-3 rounded-2xl bg-slate-900/60 border border-slate-800">
-        
-        {/* Popular Language Chips */}
-        <div className="flex items-center gap-1.5 overflow-x-auto text-xs py-1">
-          <span className="text-slate-400 text-[11px] font-medium mr-1">Popular:</span>
+      {/* Language Bar with Swap Button */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 text-xs hairline-b">
+        <div className="flex items-center gap-2">
+          {/* Source Language Picker */}
+          <LanguageSelect
+            value={sourceLang}
+            onChange={(code) => {
+              setSourceLang(code);
+              if (sourceText.trim()) setTimeout(() => handleTranslate(sourceText), 50);
+            }}
+            options={SOURCE_LANGUAGES}
+            placeholder="Select source or Auto Detect..."
+          />
+
+          {/* Bidirectional Swap Button */}
+          <button
+            type="button"
+            onClick={handleSwapLanguages}
+            className="p-1.5 rounded-lg bg-panel hairline hover:border-zinc-500 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer shadow-subtle"
+            title="Swap source and target languages (and text)"
+          >
+            <ArrowRightLeft className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Target Language Picker */}
+          <LanguageSelect
+            value={targetLang}
+            onChange={(code) => {
+              setTargetLang(code);
+              if (sourceText.trim()) setTimeout(() => handleTranslate(sourceText), 50);
+            }}
+            options={SUPPORTED_LANGUAGES}
+            placeholder="Select target language..."
+          />
+        </div>
+
+        {/* Popular Quick Chips */}
+        <div className="flex items-center gap-1.5 overflow-x-auto">
+          <span className="text-zinc-500 font-mono text-[11px] mr-1 shrink-0 hidden md:inline">Popular:</span>
           {['es', 'fr', 'de', 'hi', 'ja', 'it', 'ar', 'ru'].map((code) => {
             const lang = SUPPORTED_LANGUAGES.find((l) => l.code === code);
             const isSelected = targetLang === code;
@@ -263,10 +454,10 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
                   sounds.playClick();
                   if (sourceText.trim()) setTimeout(() => handleTranslate(sourceText), 50);
                 }}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 whitespace-nowrap ${
+                className={`px-2 py-0.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1 whitespace-nowrap hairline cursor-pointer ${
                   isSelected
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                    : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-white'
+                    ? 'bg-zinc-800 text-zinc-100 border-zinc-600 shadow-subtle'
+                    : 'bg-panel text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40'
                 }`}
               >
                 <span>{lang?.flag}</span>
@@ -275,63 +466,48 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
             );
           })}
         </div>
-
-        {/* View Mode & File Options */}
-        <div className="flex items-center gap-2">
-          {/* Tone Selector */}
-          <div className="flex items-center bg-slate-950 rounded-xl p-1 border border-slate-800 text-xs">
-            <span className="px-2 text-[10px] text-slate-500 font-semibold uppercase">Tone:</span>
-            {TONE_MODIFIERS.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => {
-                  setTone(t.id);
-                  sounds.playClick();
-                  if (sourceText.trim()) setTimeout(() => handleTranslate(sourceText), 50);
-                }}
-                className={`px-2 py-0.5 rounded-lg font-medium transition-colors ${
-                  tone === t.id ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-                }`}
-                title={t.description}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Multi-Target Split View Switcher */}
-          <button
-            type="button"
-            onClick={() => {
-              setIsSplitView(!isSplitView);
-              sounds.playClick();
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-colors ${
-              isSplitView
-                ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300'
-                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-            title="Translate simultaneously into 2 target languages side-by-side"
-          >
-            <Columns className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Split View</span>
-          </button>
-        </div>
-
       </div>
 
-      {/* Main Dual / Multi Card Translation Grid */}
-      <div className={`grid gap-6 items-stretch ${isSplitView ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1 lg:grid-cols-2'}`}>
+      {/* Optional Readability & Text Complexity Bar */}
+      {showAnalytics && (
+        <div className="mb-4 p-3 rounded-lg bg-panel hairline text-xs font-mono grid grid-cols-2 sm:grid-cols-4 gap-3 animate-slide-down">
+          <div>
+            <span className="text-zinc-500 block text-[10px]">Source Reading Level</span>
+            <span className="text-zinc-200 font-semibold">{sourceAnalytics.readingLevel}</span>
+          </div>
+          <div>
+            <span className="text-zinc-500 block text-[10px]">Reading Time</span>
+            <span className="text-zinc-200 font-semibold">{sourceAnalytics.readingTimeSeconds}s @ 200wpm</span>
+          </div>
+          <div>
+            <span className="text-zinc-500 block text-[10px]">Lexical Word Count</span>
+            <span className="text-zinc-200 font-semibold">{sourceAnalytics.wordCount} words ({sourceAnalytics.sentenceCount} sentences)</span>
+          </div>
+          <div>
+            <span className="text-zinc-500 block text-[10px]">Target Character Expansion</span>
+            <span className="text-zinc-200 font-semibold">
+              {sourceText.length > 0 && primaryResult.text.length > 0
+                ? `${Math.round((primaryResult.text.length / sourceText.length) * 100)}% ratio`
+                : '100%'}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Main Dual / Multi Panel Workstation */}
+      <div className={`grid gap-4 items-stretch ${isSplitView ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1 lg:grid-cols-2'}`}>
         
-        {/* Source Text Area (English) */}
-        <div className="flex flex-col bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl transition-all focus-within:border-indigo-500/50">
+        {/* Source Workstation Panel */}
+        <div className="flex flex-col surface-card p-5 shadow-panel focus-within:border-zinc-500/70 transition-all">
           
           {/* Header */}
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
+          <div className="flex items-center justify-between pb-3 hairline-b mb-3">
             <div className="flex items-center gap-2">
-              <span className="text-base">🇬🇧</span>
-              <span className="text-sm font-semibold text-white">English (Source)</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">Input</span>
+              <span className="text-sm">{sourceLanguageObj.flag}</span>
+              <span className="text-xs font-semibold text-zinc-200 font-sans">{sourceLanguageObj.name}</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">
+                Source Input
+              </span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -346,11 +522,11 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="text-xs text-slate-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+                className="text-xs text-zinc-400 hover:text-zinc-200 flex items-center gap-1 transition-colors cursor-pointer"
                 title="Upload .txt or .json file to translate"
               >
                 <UploadCloud className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Upload File</span>
+                <span className="hidden sm:inline">Upload</span>
               </button>
 
               {sourceText && (
@@ -358,8 +534,9 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
                   onClick={() => {
                     setSourceText('');
                     setUploadedFileName('');
+                    addToast('Cleared source input', 'info');
                   }}
-                  className="text-xs text-slate-400 hover:text-rose-400 transition-colors"
+                  className="text-xs text-zinc-400 hover:text-status-rose transition-colors cursor-pointer"
                 >
                   Clear
                 </button>
@@ -368,9 +545,9 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
           </div>
 
           {uploadedFileName && (
-            <div className="mb-2 px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-[11px] text-indigo-300 flex items-center justify-between">
+            <div className="mb-2 px-2.5 py-1 rounded-md bg-zinc-800/80 hairline text-[11px] text-zinc-300 flex items-center justify-between font-mono">
               <span className="truncate">Loaded: {uploadedFileName}</span>
-              <button onClick={() => setUploadedFileName('')} className="text-slate-400 hover:text-white">×</button>
+              <button onClick={() => setUploadedFileName('')} className="text-zinc-400 hover:text-zinc-100">×</button>
             </div>
           )}
 
@@ -379,14 +556,14 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
             id="source-text-input"
             value={sourceText}
             onChange={(e) => setSourceText(e.target.value)}
-            placeholder="Type or paste English text here, or dictate with the microphone... (Ctrl+Enter to translate)"
-            rows={isSplitView ? 8 : 7}
-            className="w-full flex-1 bg-transparent text-slate-100 placeholder-slate-500 text-base resize-none focus:outline-none leading-relaxed"
+            placeholder="Type or paste text in any language, or dictate via microphone... (Ctrl+Enter to translate)"
+            rows={isSplitView ? 9 : 8}
+            className="w-full flex-1 bg-transparent text-zinc-100 placeholder-zinc-500 text-sm resize-none focus:outline-none leading-relaxed font-sans"
           />
 
-          {/* Sample Phrases Pills */}
-          <div className="pt-2 pb-3 flex items-center gap-1.5 overflow-x-auto text-[11px] text-slate-400">
-            <span className="shrink-0 text-slate-500">Try:</span>
+          {/* Sample Phrases Chips */}
+          <div className="pt-2 pb-3 flex items-center gap-1.5 overflow-x-auto text-[11px] text-zinc-400">
+            <span className="shrink-0 text-zinc-500 font-mono">Try:</span>
             {SAMPLE_PHRASES.map((phrase, i) => (
               <button
                 key={i}
@@ -396,56 +573,68 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
                   sounds.playClick();
                   handleTranslate(phrase);
                 }}
-                className="shrink-0 px-2 py-0.5 rounded-md bg-slate-950 hover:bg-slate-800 text-slate-300 transition-colors border border-slate-800"
+                className="shrink-0 px-2 py-0.5 rounded bg-bg hover:bg-zinc-800 text-zinc-300 transition-colors hairline font-sans truncate max-w-[140px] cursor-pointer"
               >
-                "{phrase.slice(0, 20)}..."
+                "{phrase}"
               </button>
             ))}
           </div>
 
           {/* Source Footer Toolbar */}
-          <div className="flex items-center justify-between pt-3 border-t border-slate-800 text-xs text-slate-400">
+          <div className="flex items-center justify-between pt-3 hairline-t text-xs text-zinc-400">
             <div className="flex items-center gap-3">
               {isMicSupported && (
                 <button
                   type="button"
                   id="btn-voice-dictation"
                   onClick={toggleListening}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-all ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md hairline transition-all cursor-pointer ${
                     isListening
-                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
-                      : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
+                      ? 'bg-rose-950/60 text-rose-300 border-rose-800 shadow-subtle'
+                      : 'bg-bg text-zinc-400 hover:text-zinc-200'
                   }`}
                   title={isListening ? 'Listening... click to stop' : 'Click to dictate via microphone'}
                 >
-                  {isListening ? <Mic className="w-3.5 h-3.5 text-rose-400" /> : <MicOff className="w-3.5 h-3.5" />}
-                  <span>{isListening ? 'Listening...' : 'Dictate'}</span>
+                  {isListening ? (
+                    <div className="flex items-center gap-1.5 text-status-rose">
+                      <Mic className="w-3.5 h-3.5" />
+                      <span className="flex gap-0.5 items-end h-3.5">
+                        <span className="w-0.5 bg-rose-400 rounded-full animate-eq-1" />
+                        <span className="w-0.5 bg-rose-400 rounded-full animate-eq-2" />
+                        <span className="w-0.5 bg-rose-400 rounded-full animate-eq-3" />
+                        <span className="w-0.5 bg-rose-400 rounded-full animate-eq-4" />
+                      </span>
+                    </div>
+                  ) : (
+                    <MicOff className="w-3.5 h-3.5" />
+                  )}
+                  <span className="text-[11px] font-medium">{isListening ? 'Recording...' : 'Dictate'}</span>
                 </button>
               )}
 
-              <span>{sourceText.length} chars</span>
+              <span className="font-mono text-[11px] text-zinc-500">{sourceText.length} chars</span>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="hidden sm:inline text-[11px] text-slate-500">
-                <kbd className="px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 text-[10px]">Ctrl</kbd>+<kbd className="px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 text-[10px]">Enter</kbd>
+              <span className="hidden sm:inline text-[10px] text-zinc-500 font-mono">
+                Ctrl+Enter
               </span>
               <button
                 id="btn-translate-action"
                 type="button"
                 onClick={() => handleTranslate()}
                 disabled={isLoading || !sourceText.trim()}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white shadow-md shadow-indigo-600/30 transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold bg-zinc-100 hover:bg-white disabled:opacity-50 text-zinc-950 transition-colors cursor-pointer shadow-subtle"
               >
                 {isLoading ? (
                   <>
-                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <div className="w-3 h-3 border-2 border-zinc-400 border-t-zinc-950 rounded-full animate-spin" />
                     <span>Translating...</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-3.5 h-3.5" />
                     <span>Translate</span>
+                    <ArrowRight className="w-3 h-3" />
                   </>
                 )}
               </button>
@@ -454,41 +643,33 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
 
         </div>
 
-        {/* Primary Target Output Card */}
-        <div className="flex flex-col bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl">
+        {/* Primary Target Output Panel */}
+        <div className="flex flex-col surface-card p-5 shadow-panel">
           
-          {/* Header & Target Selector */}
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-3 gap-2">
-            <div className="flex items-center gap-2 flex-1">
-              <span className="text-base">{targetLanguageObj.flag}</span>
-              <select
-                id="target-language-select"
-                value={targetLang}
-                onChange={(e) => {
-                  setTargetLang(e.target.value);
-                  sounds.playClick();
-                  if (sourceText.trim()) setTimeout(() => handleTranslate(sourceText), 50);
-                }}
-                className="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-medium focus:outline-none focus:border-indigo-500 cursor-pointer max-w-[170px]"
-              >
-                {SUPPORTED_LANGUAGES.map((l) => (
-                  <option key={l.code} value={l.code} className="bg-slate-900 text-white">
-                    {l.flag} {l.name}
-                  </option>
-                ))}
-              </select>
+          {/* Header */}
+          <div className="flex items-center justify-between pb-3 hairline-b mb-3 gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">{targetLanguageObj.flag}</span>
+              <span className="text-xs font-semibold text-zinc-200 font-sans">{targetLanguageObj.name}</span>
+              {primaryResult.meta?.detectedSource && (
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-status-emerald">
+                  From: {primaryResult.meta.detectedSource.toUpperCase()}
+                </span>
+              )}
             </div>
 
             {primaryResult.meta && (
-              <div className="flex items-center gap-1 text-[10px] text-slate-400 bg-slate-950 px-2 py-1 rounded-md border border-slate-800">
+              <div className="flex items-center gap-1.5 text-[10px] font-mono text-zinc-400 bg-bg px-2 py-0.5 rounded hairline">
                 {primaryResult.meta.fromCache ? (
-                  <span className="text-emerald-400 flex items-center gap-1">
+                  <span className="text-status-emerald flex items-center gap-1">
                     <Database className="w-2.5 h-2.5" /> LRU Cache
                   </span>
                 ) : (
                   <>
-                    <Zap className="w-3 h-3 text-amber-400" />
+                    <Zap className="w-3 h-3 text-status-amber" />
                     <span>{primaryResult.meta.latencyMs}ms</span>
+                    <span className="text-zinc-600">•</span>
+                    <span className="text-zinc-400 truncate max-w-[120px]">{primaryResult.meta.engine}</span>
                   </>
                 )}
               </div>
@@ -498,34 +679,34 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
           {/* Translated Content */}
           <div className="flex-1 min-h-[160px] flex flex-col justify-start">
             {isLoading ? (
-              <div className="flex-1 flex flex-col items-center justify-center gap-3 py-10">
-                <div className="w-8 h-8 border-3 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-                <p className="text-xs text-slate-400 animate-pulse">Translating phrase...</p>
+              <div className="flex-1 flex flex-col items-center justify-center gap-2.5 py-10">
+                <div className="w-6 h-6 border-2 border-zinc-700 border-t-zinc-200 rounded-full animate-spin" />
+                <p className="text-xs text-zinc-400 font-mono">Running neural translation engine...</p>
               </div>
             ) : error ? (
-              <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs">
-                <p className="font-semibold mb-1">Translation Notice:</p>
+              <div className="p-3 rounded-md bg-rose-950/40 hairline border-rose-800/60 text-rose-300 text-xs font-mono">
+                <p className="font-semibold mb-0.5">Translation Notice:</p>
                 <p>{error}</p>
               </div>
             ) : primaryResult.text ? (
               <div 
                 id="translated-output-text"
-                className={`text-slate-100 text-base leading-relaxed select-text py-1 ${
+                className={`text-zinc-100 text-sm leading-relaxed select-text py-1 ${
                   targetLanguageObj.dir === 'rtl' ? 'text-right font-sans' : ''
                 }`}
               >
                 {primaryResult.text}
               </div>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-slate-400 py-10">
-                <Languages className="w-8 h-8 stroke-1 mb-2 text-slate-600" />
-                <p className="text-xs">Converted string will appear here.</p>
+              <div className="flex-1 flex flex-col items-center justify-center text-zinc-600 py-10">
+                <Languages className="w-6 h-6 stroke-1 mb-2 text-zinc-700" />
+                <p className="text-xs text-zinc-500 font-mono">Converted string will appear here.</p>
               </div>
             )}
           </div>
 
           {/* Target Footer Toolbar */}
-          <div className="flex items-center justify-between pt-3 border-t border-slate-800 text-xs text-slate-400">
+          <div className="flex items-center justify-between pt-3 hairline-t text-xs text-zinc-400">
             <div className="flex items-center gap-2">
               {primaryResult.text && (
                 <>
@@ -533,31 +714,41 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
                     type="button"
                     id="btn-play-voice"
                     onClick={() => handlePlayVoice(primaryResult.text, targetLanguageObj.speechCode)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-all ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md hairline transition-colors cursor-pointer ${
                       isPlaying
-                        ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40 animate-pulse'
-                        : 'bg-slate-950 text-slate-300 border-slate-800 hover:text-white'
+                        ? 'bg-zinc-800 text-white'
+                        : 'bg-bg text-zinc-300 hover:text-white'
                     }`}
                   >
                     {isPlaying ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-                    <span>{isPlaying ? 'Speaking...' : 'Listen'}</span>
+                    <span className="text-[11px]">{isPlaying ? 'Speaking...' : 'Listen'}</span>
                   </button>
 
                   <button
                     type="button"
                     id="btn-copy-translation"
                     onClick={() => handleCopy(primaryResult.text, 'primary')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 transition-colors"
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-bg hover:bg-zinc-800 text-zinc-300 hairline transition-colors cursor-pointer"
+                    title="Copy translation"
                   >
-                    {copiedIndex === 'primary' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedIndex === 'primary' ? 'Copied' : 'Copy'}</span>
+                    {copiedIndex === 'primary' ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-status-emerald" />
+                        <span className="text-[11px] text-status-emerald">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span className="text-[11px]">Copy</span>
+                      </>
+                    )}
                   </button>
 
                   <button
                     type="button"
                     onClick={handleExportTranslation}
-                    className="p-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 transition-colors"
-                    title="Download translated text file"
+                    className="p-1 rounded-md bg-bg hover:bg-zinc-800 text-zinc-400 hover:text-white hairline transition-colors cursor-pointer"
+                    title="Download translated text file (.txt)"
                   >
                     <Download className="w-3.5 h-3.5" />
                   </button>
@@ -566,80 +757,71 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
             </div>
 
             <div className="text-right">
-              {primaryResult.text && <span className="text-[11px] text-slate-500">{primaryResult.text.length} chars</span>}
+              {primaryResult.text && <span className="font-mono text-[11px] text-zinc-500">{primaryResult.text.length} chars</span>}
             </div>
           </div>
 
         </div>
 
-        {/* Secondary Target Card (Only in Split View) */}
+        {/* Secondary Target Panel (Only in Split View) */}
         {isSplitView && (
-          <div className="flex flex-col bg-slate-900/90 border border-slate-800 rounded-3xl p-5 shadow-xl animate-fade-in">
+          <div className="flex flex-col surface-card p-5 shadow-panel animate-fade-in">
             
-            {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-3 gap-2">
-              <div className="flex items-center gap-2 flex-1">
-                <span className="text-base">{secondaryLanguageObj.flag}</span>
-                <select
-                  value={secondaryLang}
-                  onChange={(e) => {
-                    setSecondaryLang(e.target.value);
-                    sounds.playClick();
-                    if (sourceText.trim()) setTimeout(() => handleTranslate(sourceText), 50);
-                  }}
-                  className="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-medium focus:outline-none focus:border-indigo-500 cursor-pointer max-w-[170px]"
-                >
-                  {SUPPORTED_LANGUAGES.map((l) => (
-                    <option key={l.code} value={l.code} className="bg-slate-900 text-white">
-                      {l.flag} {l.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Header with Custom Dropdown */}
+            <div className="flex items-center justify-between pb-3 hairline-b mb-3 gap-2">
+              <LanguageSelect
+                value={secondaryLang}
+                onChange={(code) => {
+                  setSecondaryLang(code);
+                  if (sourceText.trim()) setTimeout(() => handleTranslate(sourceText), 50);
+                }}
+                options={SUPPORTED_LANGUAGES}
+                placeholder="Filter parallel language..."
+              />
 
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                Split #2
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">
+                Parallel #2
               </span>
             </div>
 
             {/* Content */}
             <div className="flex-1 min-h-[160px] flex flex-col justify-start">
               {isLoading ? (
-                <div className="flex-1 flex flex-col items-center justify-center gap-3 py-10">
-                  <div className="w-8 h-8 border-3 border-purple-500/20 border-t-purple-500 rounded-full animate-spin" />
-                  <p className="text-xs text-slate-400 animate-pulse">Translating parallel language...</p>
+                <div className="flex-1 flex flex-col items-center justify-center gap-2.5 py-10">
+                  <div className="w-6 h-6 border-2 border-zinc-700 border-t-zinc-200 rounded-full animate-spin" />
+                  <p className="text-xs text-zinc-400 font-mono">Translating parallel language...</p>
                 </div>
               ) : secondaryResult.text ? (
-                <div className={`text-slate-100 text-base leading-relaxed py-1 ${secondaryLanguageObj.dir === 'rtl' ? 'text-right font-sans' : ''}`}>
+                <div className={`text-zinc-100 text-sm leading-relaxed py-1 ${secondaryLanguageObj.dir === 'rtl' ? 'text-right font-sans' : ''}`}>
                   {secondaryResult.text}
                 </div>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-slate-500 py-10">
-                  <Languages className="w-8 h-8 stroke-1 mb-2 text-slate-700" />
-                  <p className="text-xs">Parallel translation will appear here.</p>
+                <div className="flex-1 flex flex-col items-center justify-center text-zinc-600 py-10">
+                  <Languages className="w-6 h-6 stroke-1 mb-2 text-zinc-700" />
+                  <p className="text-xs text-zinc-500 font-mono">Parallel translation will appear here.</p>
                 </div>
               )}
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between pt-3 border-t border-slate-800 text-xs text-slate-400">
+            <div className="flex items-center justify-between pt-3 hairline-t text-xs text-zinc-400">
               {secondaryResult.text && (
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => handlePlayVoice(secondaryResult.text, secondaryLanguageObj.speechCode)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-950 text-slate-300 border border-slate-800 hover:text-white"
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-bg text-zinc-300 hairline hover:text-white cursor-pointer"
                   >
                     <Volume2 className="w-3.5 h-3.5" />
-                    <span>Listen</span>
+                    <span className="text-[11px]">Listen</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => handleCopy(secondaryResult.text, 'secondary')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800"
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-bg hover:bg-zinc-800 text-zinc-300 hairline cursor-pointer"
                   >
-                    {copiedIndex === 'secondary' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedIndex === 'secondary' ? 'Copied' : 'Copy'}</span>
+                    {copiedIndex === 'secondary' ? <Check className="w-3.5 h-3.5 text-status-emerald" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span className="text-[11px]">{copiedIndex === 'secondary' ? 'Copied' : 'Copy'}</span>
                   </button>
                 </div>
               )}
@@ -650,56 +832,89 @@ export default function TranslatorPage({ onOpenApiModal, initialTargetLang = 'es
 
       </div>
 
-      {/* Translation History Section */}
-      {history.length > 0 && (
-        <div className="mt-12 bg-slate-900/60 border border-slate-800 rounded-3xl p-6">
-          <div className="flex items-center justify-between mb-4">
+      {/* Translation History Drawer / Panel with Flashcard Export */}
+      {showHistory && (
+        <div className="mt-6 bg-panel hairline rounded-xl p-4 animate-slide-down shadow-subtle">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 hairline-b mb-3">
             <div className="flex items-center gap-2">
-              <History className="w-4 h-4 text-indigo-400" />
-              <h3 className="text-sm font-semibold text-white">Recent Translation History</h3>
-              <span className="text-xs text-slate-500">({history.length})</span>
+              <History className="w-4 h-4 text-zinc-400" />
+              <h3 className="text-xs font-semibold text-zinc-200">Translation History & Study Deck</h3>
+              <span className="text-[11px] font-mono text-zinc-500">({history.length})</span>
             </div>
-            <button
-              onClick={() => {
-                setHistory([]);
-                sounds.playTone(300, 'sine', 0.05, 0.02);
-              }}
-              className="text-xs text-slate-400 hover:text-rose-400 flex items-center gap-1 transition-colors"
-            >
-              <Trash2 className="w-3 h-3" /> Clear History
-            </button>
+
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="w-3 h-3 text-zinc-500 absolute left-2 top-2" />
+                <input
+                  type="text"
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  placeholder="Filter history..."
+                  className="pl-6 pr-2 py-1 bg-bg hairline rounded-md text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                />
+              </div>
+
+              {/* Anki Flashcard Deck Export */}
+              <button
+                type="button"
+                onClick={handleExportFlashcards}
+                className="flex items-center gap-1 text-xs text-zinc-300 hover:text-white px-2.5 py-1 rounded-md bg-bg hairline hover:border-zinc-600 transition-colors cursor-pointer"
+                title="Export history as Anki / Quizlet flashcard study deck (.tsv)"
+              >
+                <BookOpen className="w-3 h-3 text-accent-400" />
+                <span className="hidden sm:inline">Export Flashcards</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setHistory([]);
+                  sounds.playTone(300, 'sine', 0.05, 0.02);
+                  addToast('Cleared translation history', 'info');
+                }}
+                className="text-xs text-zinc-400 hover:text-status-rose flex items-center gap-1 transition-colors cursor-pointer px-2 py-1 rounded-md hover:bg-zinc-800/60"
+              >
+                <Trash2 className="w-3 h-3" /> Clear
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {history.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => {
-                  setSourceText(item.sourceText);
-                  setPrimaryResult({ text: item.translatedText, meta: { engine: item.engine, fromCache: item.fromCache } });
-                  sounds.playClick();
-                }}
-                className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800 hover:border-slate-700 cursor-pointer transition-all group"
-              >
-                <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1.5">
-                  <span className="flex items-center gap-1 font-medium text-slate-300">
-                    <span>{item.flag}</span>
-                    <span>{item.targetLang}</span>
-                  </span>
-                  <span className="flex items-center gap-1 text-[10px] text-slate-500">
-                    <Clock className="w-2.5 h-2.5" />
-                    {item.timestamp}
-                  </span>
+          {filteredHistory.length === 0 ? (
+            <div className="py-6 text-center text-xs text-zinc-500 font-mono">
+              {history.length === 0 ? 'No translation entries yet.' : 'No entries match your search.'}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-72 overflow-y-auto pr-1">
+              {filteredHistory.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => {
+                    setSourceText(item.sourceText);
+                    setPrimaryResult({ text: item.translatedText, meta: { engine: item.engine, fromCache: item.fromCache } });
+                    sounds.playClick();
+                    addToast(`Restored "${item.sourceText.slice(0, 20)}..."`, 'info');
+                  }}
+                  className="p-2.5 rounded-lg bg-bg hairline hover:border-zinc-600 cursor-pointer transition-colors group text-left"
+                >
+                  <div className="flex items-center justify-between text-[11px] text-zinc-400 mb-1">
+                    <span className="flex items-center gap-1.5 font-medium text-zinc-300">
+                      <span>{item.flag}</span>
+                      <span>{item.targetLang}</span>
+                    </span>
+                    <span className="flex items-center gap-1 text-[10px] text-zinc-500 font-mono">
+                      <Clock className="w-2.5 h-2.5" />
+                      {item.timestamp}
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-300 font-medium line-clamp-1 group-hover:text-zinc-100 transition-colors">
+                    {item.sourceText}
+                  </p>
+                  <p className="text-xs text-zinc-400 line-clamp-1 mt-0.5 font-sans">
+                    {item.translatedText}
+                  </p>
                 </div>
-                <p className="text-xs text-slate-300 font-medium line-clamp-1 group-hover:text-indigo-300 transition-colors">
-                  {item.sourceText}
-                </p>
-                <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">
-                  {item.translatedText}
-                </p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

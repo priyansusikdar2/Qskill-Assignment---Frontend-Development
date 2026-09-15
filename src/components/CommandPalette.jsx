@@ -7,7 +7,6 @@ import {
   Code2, 
   KeyRound, 
   Trash2, 
-  Sparkles, 
   CornerDownLeft, 
   X 
 } from 'lucide-react';
@@ -54,14 +53,14 @@ export default function CommandPalette({ isOpen, onClose, onOpenApiModal, onSele
     },
     {
       id: 'open-rapidapi',
-      title: 'Settings: Configure RapidAPI Key',
+      title: 'Credentials: Configure RapidAPI & Secrets',
       category: 'Settings',
       icon: KeyRound,
       action: onOpenApiModal,
     },
     {
       id: 'clear-cache',
-      title: 'Cache: Invalidate LRU Translation Cache',
+      title: 'Cache: Invalidate LRU Memory Translation Cache',
       category: 'System',
       icon: Trash2,
       action: () => {
@@ -114,14 +113,14 @@ export default function CommandPalette({ isOpen, onClose, onOpenApiModal, onSele
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/75 backdrop-blur-md animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 px-4 bg-black/70 backdrop-blur-sm animate-fade-in">
       <div 
-        className="w-full max-w-xl bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden"
+        className="w-full max-w-xl bg-panel hairline shadow-modal rounded-xl overflow-hidden animate-slide-down"
         onKeyDown={handleKeyDown}
       >
         {/* Search Header */}
-        <div className="relative flex items-center px-4 border-b border-slate-800 bg-slate-950/80">
-          <Search className="w-5 h-5 text-indigo-400 shrink-0 mr-3" />
+        <div className="relative flex items-center px-3.5 hairline-b bg-bg-subtle">
+          <Search className="w-4 h-4 text-zinc-400 shrink-0 mr-2.5" />
           <input
             ref={inputRef}
             type="text"
@@ -130,18 +129,18 @@ export default function CommandPalette({ isOpen, onClose, onOpenApiModal, onSele
               setQuery(e.target.value);
               setSelectedIndex(0);
             }}
-            placeholder="Type a command, route, or target language..."
-            className="w-full py-3.5 bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none"
+            placeholder="Search commands, navigate routes, or set language..."
+            className="w-full py-3 bg-transparent text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none font-sans"
           />
-          <span className="hidden sm:inline text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
-            Esc to close
-          </span>
+          <kbd className="hidden sm:inline text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">
+            Esc
+          </kbd>
         </div>
 
         {/* Command list */}
-        <div className="max-h-80 overflow-y-auto p-2 divide-y divide-slate-800/40">
+        <div className="max-h-80 overflow-y-auto p-1.5 space-y-0.5">
           {filtered.length === 0 ? (
-            <div className="py-8 text-center text-xs text-slate-500">
+            <div className="py-8 text-center text-xs text-zinc-500 font-mono">
               No matching commands found for "{query}".
             </div>
           ) : (
@@ -153,21 +152,23 @@ export default function CommandPalette({ isOpen, onClose, onOpenApiModal, onSele
                   key={cmd.id}
                   onClick={() => executeCommand(cmd)}
                   onMouseEnter={() => setSelectedIndex(idx)}
-                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer text-xs transition-colors ${
-                    isSelected ? 'bg-indigo-600/90 text-white' : 'text-slate-300 hover:bg-slate-800/60'
+                  className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-xs transition-colors ${
+                    isSelected 
+                      ? 'bg-zinc-800 text-zinc-100' 
+                      : 'text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-200'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 truncate">
-                    <Icon className={`w-4 h-4 shrink-0 ${isSelected ? 'text-white' : 'text-indigo-400'}`} />
-                    <span className="font-medium truncate">{cmd.title}</span>
+                    <Icon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-accent-400' : 'text-zinc-500'}`} />
+                    <span className="truncate font-medium">{cmd.title}</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-mono ${
-                      isSelected ? 'bg-indigo-700/80 text-white' : 'bg-slate-800 text-slate-400'
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+                      isSelected ? 'bg-zinc-700 text-zinc-200' : 'bg-zinc-900 text-zinc-500 border border-zinc-800'
                     }`}>
                       {cmd.category}
                     </span>
-                    {isSelected && <CornerDownLeft className="w-3.5 h-3.5" />}
+                    {isSelected && <CornerDownLeft className="w-3 h-3 text-zinc-400" />}
                   </div>
                 </div>
               );
@@ -176,9 +177,13 @@ export default function CommandPalette({ isOpen, onClose, onOpenApiModal, onSele
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-2 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between text-[11px] text-slate-500">
-          <span>Navigate with <kbd className="font-mono text-slate-400">↑</kbd> <kbd className="font-mono text-slate-400">↓</kbd></span>
-          <span>Select with <kbd className="font-mono text-slate-400">↵ Enter</kbd></span>
+        <div className="px-3.5 py-2 hairline-t bg-bg-subtle flex items-center justify-between text-[11px] text-zinc-500 font-mono">
+          <div className="flex items-center gap-2">
+            <span><kbd className="px-1 py-0.5 rounded bg-zinc-800 text-zinc-300">↑</kbd> <kbd className="px-1 py-0.5 rounded bg-zinc-800 text-zinc-300">↓</kbd> to navigate</span>
+            <span className="text-zinc-700">•</span>
+            <span><kbd className="px-1 py-0.5 rounded bg-zinc-800 text-zinc-300">↵</kbd> to execute</span>
+          </div>
+          <span className="text-zinc-600">{filtered.length} items</span>
         </div>
       </div>
     </div>

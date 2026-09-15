@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { WifiOff, Wifi } from 'lucide-react';
+import { WifiOff } from 'lucide-react';
 
 export default function NetworkBanner() {
   const [isOnline, setIsOnline] = useState(
@@ -22,9 +22,9 @@ export default function NetworkBanner() {
   if (isOnline) return null;
 
   return (
-    <div className="bg-amber-500 text-slate-950 px-4 py-2 text-xs font-semibold flex items-center justify-center gap-2 sticky top-0 z-50 shadow-md">
-      <WifiOff className="w-4 h-4" />
-      <span>You are currently offline. Translation features requiring external APIs will be paused.</span>
+    <div className="bg-amber-950/80 hairline-b border-amber-800/60 text-amber-200 px-4 py-2 text-xs font-mono flex items-center justify-center gap-2 sticky top-0 z-50 animate-slide-down">
+      <WifiOff className="w-3.5 h-3.5 text-amber-400" />
+      <span>Network Offline: Live RapidAPI endpoints paused. Fallback and cache modes remain active.</span>
     </div>
   );
 }

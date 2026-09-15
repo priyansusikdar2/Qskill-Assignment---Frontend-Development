@@ -8,6 +8,8 @@ import SkeletonLoader from './components/SkeletonLoader';
 import { getStoredApiConfig } from './services/translationService';
 import { Sparkles, Heart } from 'lucide-react';
 
+import { ToastProvider } from './components/Toast';
+
 // Code-splitting via React.lazy
 const TranslatorPage = lazy(() => import('./pages/TranslatorPage'));
 const RandomStringPage = lazy(() => import('./pages/RandomStringPage'));
@@ -34,74 +36,79 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white">
-      {/* Network offline detector */}
-      <NetworkBanner />
+    <ToastProvider>
+      <div className="min-h-screen flex flex-col bg-bg ambient-glow text-zinc-100 font-sans selection:bg-accent-600 selection:text-white">
+        {/* Network offline detector */}
+        <NetworkBanner />
 
-      {/* Client-Side Routing Navbar */}
-      <Navbar
-        onOpenApiModal={() => setIsApiModalOpen(true)}
-        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
-        hasApiKey={hasApiKey}
-        apiSource={apiConfig.source}
-      />
+        {/* Client-Side Routing Navbar */}
+        <Navbar
+          onOpenApiModal={() => setIsApiModalOpen(true)}
+          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+          hasApiKey={hasApiKey}
+          apiSource={apiConfig.source}
+        />
 
-      {/* Main Routed Content Area with Suspense and bespoke Skeleton */}
-      <main className="flex-1">
-        <Suspense fallback={<SkeletonLoader />}>
-          <Routes>
-            <Route path="/" element={<Navigate to="/translator" replace />} />
-            <Route 
-              path="/translator" 
-              element={
-                <TranslatorPage 
-                  onOpenApiModal={() => setIsApiModalOpen(true)} 
-                  initialTargetLang={selectedLanguageCode}
-                />
-              } 
-            />
-            <Route path="/random-string" element={<RandomStringPage />} />
-            <Route path="/architecture" element={<ArchitecturePage />} />
-            <Route path="*" element={<Navigate to="/translator" replace />} />
-          </Routes>
-        </Suspense>
-      </main>
+        {/* Main Routed Content Area with Suspense and bespoke Skeleton */}
+        <main className="flex-1">
+          <Suspense fallback={<SkeletonLoader />}>
+            <Routes>
+              <Route path="/" element={<Navigate to="/translator" replace />} />
+              <Route 
+                path="/translator" 
+                element={
+                  <TranslatorPage 
+                    onOpenApiModal={() => setIsApiModalOpen(true)} 
+                    initialTargetLang={selectedLanguageCode}
+                  />
+                } 
+              />
+              <Route path="/random-string" element={<RandomStringPage />} />
+              <Route path="/architecture" element={<ArchitecturePage />} />
+              <Route path="*" element={<Navigate to="/translator" replace />} />
+            </Routes>
+          </Suspense>
+        </main>
 
-      {/* Command Palette (Ctrl+K) */}
-      <CommandPalette
-        isOpen={isCommandPaletteOpen}
-        onClose={() => setIsCommandPaletteOpen(false)}
-        onOpenApiModal={() => setIsApiModalOpen(true)}
-        onSelectLanguage={(langCode) => setSelectedLanguageCode(langCode)}
-      />
+        {/* Command Palette (Ctrl+K) */}
+        <CommandPalette
+          isOpen={isCommandPaletteOpen}
+          onClose={() => setIsCommandPaletteOpen(false)}
+          onOpenApiModal={() => setIsApiModalOpen(true)}
+          onSelectLanguage={(langCode) => setSelectedLanguageCode(langCode)}
+        />
 
-      {/* RapidAPI Credentials Modal */}
-      <ApiKeyModal
-        isOpen={isApiModalOpen}
-        onClose={() => setIsApiModalOpen(false)}
-        onConfigSaved={(newCfg) => setApiConfig(newCfg)}
-      />
+        {/* RapidAPI Credentials Modal */}
+        <ApiKeyModal
+          isOpen={isApiModalOpen}
+          onClose={() => setIsApiModalOpen(false)}
+          onConfigSaved={(newCfg) => setApiConfig(newCfg)}
+        />
 
-      {/* Professional Footer */}
-      <footer className="border-t border-white/5 bg-slate-950/90 py-6 text-xs text-slate-400">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-300">QSkill Internship</span>
-            <span>•</span>
-            <span>Slab 1 Full Suite Submission</span>
+        {/* Minimalist Production Footer */}
+        <footer className="hairline-t bg-bg-subtle/80 py-4 text-xs text-zinc-500">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-zinc-300">QSkill Developer Suite</span>
+              <span className="text-zinc-600">/</span>
+              <span className="text-zinc-400">Enterprise Edition</span>
+            </div>
+
+            <div className="flex items-center gap-3 text-zinc-500 font-mono text-[11px]">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-status-emerald"></span>
+                System Healthy
+              </span>
+              <span className="text-zinc-700">•</span>
+              <span>React 18.3</span>
+              <span className="text-zinc-700">•</span>
+              <span>Vite 6</span>
+              <span className="text-zinc-700">•</span>
+              <span>WebCrypto</span>
+            </div>
           </div>
-
-          <div className="flex items-center gap-4 text-slate-400">
-            <span>React 18</span>
-            <span>•</span>
-            <span>Tailwind CSS</span>
-            <span>•</span>
-            <span>react-router-dom</span>
-            <span>•</span>
-            <span>RapidAPI</span>
-          </div>
-        </div>
-      </footer>
-    </div>
+        </footer>
+      </div>
+    </ToastProvider>
   );
 }
